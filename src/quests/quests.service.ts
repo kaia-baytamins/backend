@@ -17,6 +17,7 @@ import {
   QuestStatus,
 } from '../entities';
 import { ContractService } from '../blockchain/contract.service';
+import { DefiService } from '../blockchain/defi.service';
 import { UsersService } from '../users/users.service';
 import { GetQuestsDto } from './dto/quest.dto';
 
@@ -32,6 +33,7 @@ export class QuestsService {
     @InjectRepository(User)
     private readonly userRepository: Repository<User>,
     private readonly contractService: ContractService,
+    private readonly defiService: DefiService,
     private readonly usersService: UsersService,
   ) {}
 
@@ -223,6 +225,15 @@ export class QuestsService {
             quest,
           );
           break;
+        case QuestCategory.LENDING:
+          newProgress = await this.getLendingProgress(
+            user.walletAddress,
+            quest,
+          );
+          break;
+        case QuestCategory.LP_PROVIDING:
+          newProgress = await this.getLpProgress(user.walletAddress, quest);
+          break;
         case QuestCategory.EXPLORATION:
           newProgress = this.getExplorationProgress(user, quest);
           break;
@@ -256,22 +267,84 @@ export class QuestsService {
     quest: Quest,
   ): Promise<number> {
     try {
-      const stakedAmount =
-        await this.contractService.getStakedAmount(walletAddress);
-      const stakedValue = parseFloat(stakedAmount);
+      const stakingInfo = await this.defiService.getStakingInfo(walletAddress);
+      const stakedValue = parseFloat(stakingInfo.amount);
 
       switch (quest.requirements.action) {
         case 'stake':
           return Math.floor(stakedValue);
         case 'maintain_stake':
           // Check if staking duration requirement is met
-          // This would require tracking stake timestamps
           return stakedValue >= quest.requirements.amount ? 1 : 0;
+        case 'claim_rewards':
+          const pendingRewards = parseFloat(stakingInfo.pendingRewards);
+          return pendingRewards >= quest.requirements.amount ? 1 : 0;
         default:
           return 0;
       }
     } catch (error) {
       this.logger.error(`Error getting staking progress: ${error.message}`);
+      return 0;
+    }
+  }
+
+  /**
+   * Get lending progress from blockchain
+   */
+  private async getLendingProgress(
+    walletAddress: string,
+    quest: Quest,
+  ): Promise<number> {
+    try {
+      const lendingInfo = await this.defiService.getLendingInfo(walletAddress);
+
+      switch (quest.requirements.action) {
+        case 'supply':
+          const suppliedValue = parseFloat(lendingInfo.supplied);
+          return Math.floor(suppliedValue);
+        case 'borrow':
+          const borrowedValue = parseFloat(lendingInfo.borrowed);
+          return Math.floor(borrowedValue);
+        case 'maintain_collateral':
+          const healthFactor = parseFloat(lendingInfo.healthFactor);
+          return healthFactor >= 1.2 ? 1 : 0; // Above liquidation threshold
+        case 'repay':
+          // This would need transaction tracking to see if user repaid
+          return 0;
+        default:
+          return 0;
+      }
+    } catch (error) {
+      this.logger.error(`Error getting lending progress: ${error.message}`);
+      return 0;
+    }
+  }
+
+  /**
+   * Get LP providing progress from blockchain
+   */
+  private async getLpProgress(
+    walletAddress: string,
+    quest: Quest,
+  ): Promise<number> {
+    try {
+      const ammInfo = await this.defiService.getAmmInfo(walletAddress);
+
+      switch (quest.requirements.action) {
+        case 'add_liquidity':
+          const liquidityValue = parseFloat(ammInfo.liquidityProvided);
+          return Math.floor(liquidityValue);
+        case 'maintain_liquidity':
+          const currentLiquidity = parseFloat(ammInfo.liquidityProvided);
+          return currentLiquidity >= quest.requirements.amount ? 1 : 0;
+        case 'earn_fees':
+          const fees24h = parseFloat(ammInfo.fees24h);
+          return Math.floor(fees24h * 100); // Convert to basis points
+        default:
+          return 0;
+      }
+    } catch (error) {
+      this.logger.error(`Error getting LP progress: ${error.message}`);
       return 0;
     }
   }
@@ -309,13 +382,72 @@ export class QuestsService {
   /**
    * Get trading progress
    */
-  private async getTradingProgress(
-    _user: User,
-    _quest: Quest,
-  ): Promise<number> {
-    // This would track marketplace activities
-    // For now, return placeholder
-    return 0;
+  private async getTradingProgress(user: User, quest: Quest): Promise<number> {
+    try {
+      // This would track marketplace activities and DeFi trading
+      // For now, we can track basic wallet activity
+      switch (quest.requirements.action) {
+        case 'swap_tokens':
+          // Would need to track swap events from AMM contract
+          return 0;
+        case 'trade_volume':
+          // Would need to calculate total trading volume
+          return 0;
+        case 'hold_tokens':
+          // Check if user holds minimum required tokens
+          const balance = await this.defiService.getUsdtBalance(
+            user.walletAddress,
+          );
+          const holdAmount = parseFloat(balance);
+          return holdAmount >= quest.requirements.amount ? 1 : 0;
+        default:
+          return 0;
+      }
+    } catch (error) {
+      this.logger.error(`Error getting trading progress: ${error.message}`);
+      return 0;
+    }
+  }
+
+  /**
+   * Get user's total DeFi participation value for quest eligibility
+   */
+  async getUserDefiParticipation(userId: string): Promise<{
+    totalValue: number;
+    stakingValue: number;
+    lendingValue: number;
+    lpValue: number;
+  }> {
+    try {
+      const user = await this.userRepository.findOne({ where: { id: userId } });
+      if (!user) {
+        throw new NotFoundException('User not found');
+      }
+
+      const portfolio = await this.defiService.getUserPortfolio(
+        user.walletAddress,
+      );
+
+      return {
+        totalValue: parseFloat(portfolio.totalValue),
+        stakingValue: parseFloat(portfolio.staking.amount),
+        lendingValue:
+          parseFloat(portfolio.lending.supplied) -
+          parseFloat(portfolio.lending.borrowed),
+        lpValue: parseFloat(portfolio.amm.liquidityProvided),
+      };
+    } catch (error) {
+      this.logger.error(
+        `Error getting DeFi participation for ${userId}:`,
+        error,
+      );
+      return {
+        totalValue: 0,
+        stakingValue: 0,
+        lendingValue: 0,
+        lpValue: 0,
+      };
+    }
   }
 
   /**

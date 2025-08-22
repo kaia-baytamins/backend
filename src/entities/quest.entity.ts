@@ -17,6 +17,8 @@ export enum QuestType {
 
 export enum QuestCategory {
   STAKING = 'staking',
+  LENDING = 'lending',
+  LP_PROVIDING = 'lp_providing',
   EXPLORATION = 'exploration',
   PET_CARE = 'pet_care',
   TRADING = 'trading',

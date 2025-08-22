@@ -12,9 +12,6 @@ import { User } from './user.entity';
 export enum PetType {
   DOG = 'dog',
   CAT = 'cat',
-  PANDA = 'panda',
-  RABBIT = 'rabbit',
-  TIGER = 'tiger',
 }
 
 export enum PetRarity {

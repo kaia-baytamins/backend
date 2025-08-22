@@ -3,16 +3,13 @@ import { ConfigService } from '@nestjs/config';
 import { ethers } from 'ethers';
 
 import { BlockchainService } from './blockchain.service';
-
-// Basic ABI definitions for common contract interactions
-// ERC20 ABI for future use
-// const ERC20_ABI = [
-//   'function balanceOf(address owner) view returns (uint256)',
-//   'function transfer(address to, uint256 amount) returns (bool)',
-//   'function allowance(address owner, address spender) view returns (uint256)',
-//   'function approve(address spender, uint256 amount) returns (bool)',
-//   'event Transfer(address indexed from, address indexed to, uint256 value)',
-// ];
+import {
+  USDT_ABI,
+  USDT_STAKING_ABI,
+  LENDING_PROTOCOL_ABI,
+  SIMPLE_AMM_ABI,
+  USDT_FAUCET_ABI,
+} from './abis';
 
 const ERC721_ABI = [
   'function balanceOf(address owner) view returns (uint256)',
@@ -23,22 +20,16 @@ const ERC721_ABI = [
   'event Transfer(address indexed from, address indexed to, uint256 indexed tokenId)',
 ];
 
-// Sample staking contract ABI
-const STAKING_ABI = [
-  'function stake(uint256 amount)',
-  'function unstake(uint256 amount)',
-  'function getStakedAmount(address user) view returns (uint256)',
-  'function getRewards(address user) view returns (uint256)',
-  'function claimRewards()',
-  'event Staked(address indexed user, uint256 amount)',
-  'event Unstaked(address indexed user, uint256 amount)',
-  'event RewardsClaimed(address indexed user, uint256 amount)',
-];
-
 @Injectable()
 export class ContractService implements OnModuleInit {
   private readonly logger = new Logger(ContractService.name);
+
+  // Contract instances
+  private usdtContract?: ethers.Contract;
   private stakingContract?: ethers.Contract;
+  private lendingContract?: ethers.Contract;
+  private ammContract?: ethers.Contract;
+  private faucetContract?: ethers.Contract;
   private nftContract?: ethers.Contract;
   private marketplaceContract?: ethers.Contract;
 
@@ -56,21 +47,65 @@ export class ContractService implements OnModuleInit {
    */
   private async initializeContracts(): Promise<void> {
     try {
+      // Get contract addresses from config
+      const usdtAddress = this.configService.get<string>('contracts.usdt');
       const stakingAddress =
         this.configService.get<string>('contracts.staking');
+      const lendingAddress =
+        this.configService.get<string>('contracts.lending');
+      const ammAddress = this.configService.get<string>('contracts.amm');
+      const faucetAddress = this.configService.get<string>('contracts.faucet');
       const nftAddress = this.configService.get<string>('contracts.nft');
       const marketplaceAddress = this.configService.get<string>(
         'contracts.marketplace',
       );
 
+      // Initialize USDT contract
+      if (usdtAddress) {
+        this.usdtContract = this.blockchainService.getContract(
+          usdtAddress,
+          USDT_ABI,
+        );
+        this.logger.log(`USDT contract initialized at ${usdtAddress}`);
+      }
+
+      // Initialize staking contract
       if (stakingAddress) {
         this.stakingContract = this.blockchainService.getContract(
           stakingAddress,
-          STAKING_ABI,
+          USDT_STAKING_ABI,
         );
         this.logger.log(`Staking contract initialized at ${stakingAddress}`);
       }
 
+      // Initialize lending contract
+      if (lendingAddress) {
+        this.lendingContract = this.blockchainService.getContract(
+          lendingAddress,
+          LENDING_PROTOCOL_ABI,
+        );
+        this.logger.log(`Lending contract initialized at ${lendingAddress}`);
+      }
+
+      // Initialize AMM contract
+      if (ammAddress) {
+        this.ammContract = this.blockchainService.getContract(
+          ammAddress,
+          SIMPLE_AMM_ABI,
+        );
+        this.logger.log(`AMM contract initialized at ${ammAddress}`);
+      }
+
+      // Initialize faucet contract
+      if (faucetAddress) {
+        this.faucetContract = this.blockchainService.getContract(
+          faucetAddress,
+          USDT_FAUCET_ABI,
+        );
+        this.logger.log(`Faucet contract initialized at ${faucetAddress}`);
+      }
+
+      // Initialize NFT contract
       if (nftAddress) {
         this.nftContract = this.blockchainService.getContract(
           nftAddress,
@@ -79,8 +114,8 @@ export class ContractService implements OnModuleInit {
         this.logger.log(`NFT contract initialized at ${nftAddress}`);
       }
 
+      // Initialize marketplace contract
       if (marketplaceAddress) {
-        // Marketplace contract would have its own ABI
         this.logger.log(
           `Marketplace contract address configured: ${marketplaceAddress}`,
         );
@@ -91,6 +126,16 @@ export class ContractService implements OnModuleInit {
   }
 
   /**
+   * Get USDT contract instance
+   */
+  getUsdtContract(): ethers.Contract {
+    if (!this.usdtContract) {
+      throw new Error('USDT contract not initialized');
+    }
+    return this.usdtContract;
+  }
+
+  /**
    * Get staking contract instance
    */
   getStakingContract(): ethers.Contract {
@@ -98,6 +143,36 @@ export class ContractService implements OnModuleInit {
       throw new Error('Staking contract not initialized');
     }
     return this.stakingContract;
+  }
+
+  /**
+   * Get lending contract instance
+   */
+  getLendingContract(): ethers.Contract {
+    if (!this.lendingContract) {
+      throw new Error('Lending contract not initialized');
+    }
+    return this.lendingContract;
+  }
+
+  /**
+   * Get AMM contract instance
+   */
+  getAmmContract(): ethers.Contract {
+    if (!this.ammContract) {
+      throw new Error('AMM contract not initialized');
+    }
+    return this.ammContract;
+  }
+
+  /**
+   * Get faucet contract instance
+   */
+  getFaucetContract(): ethers.Contract {
+    if (!this.faucetContract) {
+      throw new Error('Faucet contract not initialized');
+    }
+    return this.faucetContract;
   }
 
   /**
