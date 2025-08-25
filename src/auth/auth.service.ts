@@ -109,10 +109,9 @@ export class AuthService {
   }
 
   /**
-   * Select pet for new user
+   * Select or update pet for user
    */
   async selectPet(lineUserId: string, petType: PetType): Promise<Pet> {
-    // Check if user already has a pet
     const user = await this.userRepository.findOne({
       where: { lineUserId },
       relations: ['pet'],
@@ -120,10 +119,6 @@ export class AuthService {
 
     if (!user) {
       throw new Error('User not found');
-    }
-
-    if (user.pet) {
-      throw new Error('User already has a pet');
     }
 
     // Get pet name based on type
@@ -134,12 +129,19 @@ export class AuthService {
       [PetType.MIZURU]: 'Mizuru',
     };
 
-    const pet = this.petRepository.create({
-      name: petNames[petType],
-      type: petType,
-      ownerId: user.id,
-    });
-
-    return await this.petRepository.save(pet);
+    if (user.pet) {
+      // Update existing pet
+      user.pet.name = petNames[petType];
+      user.pet.type = petType;
+      return await this.petRepository.save(user.pet);
+    } else {
+      // Create new pet
+      const pet = this.petRepository.create({
+        name: petNames[petType],
+        type: petType,
+        ownerId: user.id,
+      });
+      return await this.petRepository.save(pet);
+    }
   }
 }
