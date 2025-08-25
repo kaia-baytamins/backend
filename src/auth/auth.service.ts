@@ -87,16 +87,9 @@ export class AuthService {
   }
 
   /**
-   * Create default pet, spaceship, and stats for new user
+   * Create default spaceship and stats for new user (pet selection comes later)
    */
   private async createDefaultAssetsAndStats(user: User): Promise<void> {
-    // Create default pet
-    const pet = this.petRepository.create({
-      name: 'Companion',
-      type: PetType.DOG,
-      ownerId: user.id,
-    });
-
     // Create default spaceship
     const spaceship = this.spaceshipRepository.create({
       name: 'Explorer I',
@@ -110,9 +103,43 @@ export class AuthService {
     });
 
     await Promise.all([
-      this.petRepository.save(pet),
       this.spaceshipRepository.save(spaceship),
       this.userStatsRepository.save(stats),
     ]);
+  }
+
+  /**
+   * Select pet for new user
+   */
+  async selectPet(lineUserId: string, petType: PetType): Promise<Pet> {
+    // Check if user already has a pet
+    const user = await this.userRepository.findOne({
+      where: { lineUserId },
+      relations: ['pet'],
+    });
+
+    if (!user) {
+      throw new Error('User not found');
+    }
+
+    if (user.pet) {
+      throw new Error('User already has a pet');
+    }
+
+    // Get pet name based on type
+    const petNames = {
+      [PetType.MOMOCO]: 'Momoco',
+      [PetType.PANLULU]: 'Panlulu',
+      [PetType.HOSHITANU]: 'Hoshitanu',
+      [PetType.MIZURU]: 'Mizuru',
+    };
+
+    const pet = this.petRepository.create({
+      name: petNames[petType],
+      type: petType,
+      ownerId: user.id,
+    });
+
+    return await this.petRepository.save(pet);
   }
 }

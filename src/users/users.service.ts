@@ -71,7 +71,7 @@ export class UsersService {
    */
   async initializeUserAssets(
     user: User,
-    petType: PetType = PetType.DOG,
+    petType: PetType = PetType.MOMOCO,
   ): Promise<void> {
     // Create default pet
     const pet = this.petRepository.create({

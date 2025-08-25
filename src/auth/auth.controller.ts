@@ -2,7 +2,7 @@ import { Controller, Post, Body, HttpCode, HttpStatus } from '@nestjs/common';
 import { ApiTags, ApiOperation, ApiResponse, ApiBody } from '@nestjs/swagger';
 
 import { AuthService } from './auth.service';
-import { SimpleLineLoginDto } from './dto/auth.dto';
+import { SimpleLineLoginDto, SelectPetDto } from './dto/auth.dto';
 import { Public } from './decorators/public.decorator';
 
 @ApiTags('Authentication')
@@ -48,5 +48,34 @@ export class AuthController {
   @ApiResponse({ status: 400, description: 'Invalid user data' })
   async simpleLogin(@Body() loginDto: SimpleLineLoginDto) {
     return await this.authService.simpleLineLogin(loginDto);
+  }
+
+  @Public()
+  @Post('select-pet')
+  @HttpCode(HttpStatus.OK)
+  @ApiOperation({
+    summary: 'Select pet for new user',
+    description: 'Select a pet after creating a new account',
+  })
+  @ApiBody({ type: SelectPetDto })
+  @ApiResponse({
+    status: 200,
+    description: 'Pet selected successfully',
+    schema: {
+      properties: {
+        id: { type: 'string', example: 'uuid-string' },
+        name: { type: 'string', example: 'Momoco' },
+        type: { type: 'string', example: 'momoco' },
+        health: { type: 'number', example: 100 },
+        level: { type: 'number', example: 1 },
+      },
+    },
+  })
+  @ApiResponse({
+    status: 400,
+    description: 'User already has a pet or user not found',
+  })
+  async selectPet(@Body() selectPetDto: SelectPetDto) {
+    return await this.authService.selectPet(selectPetDto.lineUserId, selectPetDto.petType);
   }
 }

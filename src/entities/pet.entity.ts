@@ -10,8 +10,10 @@ import {
 import { User } from './user.entity';
 
 export enum PetType {
-  DOG = 'dog',
-  CAT = 'cat',
+  MOMOCO = 'momoco',
+  PANLULU = 'panlulu',
+  HOSHITANU = 'hoshitanu',
+  MIZURU = 'mizuru',
 }
 
 export enum PetRarity {
@@ -32,7 +34,7 @@ export class Pet {
   @Column({
     type: 'enum',
     enum: PetType,
-    default: PetType.DOG,
+    default: PetType.MOMOCO,
   })
   type: PetType;
 
