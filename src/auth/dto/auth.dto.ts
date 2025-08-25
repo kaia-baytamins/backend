@@ -3,8 +3,10 @@ import {
   IsNotEmpty,
   IsOptional,
   IsEthereumAddress,
+  IsEnum,
 } from 'class-validator';
 import { ApiProperty } from '@nestjs/swagger';
+import { PetType } from '../../entities/pet.entity';
 
 export class WalletLoginDto {
   @ApiProperty({
@@ -88,4 +90,23 @@ export class SimpleLineLoginDto {
   @IsOptional()
   @IsString()
   pictureUrl?: string;
+}
+
+export class SelectPetDto {
+  @ApiProperty({
+    description: 'LINE user ID',
+    example: 'U1234567890abcdef1234567890abcdef',
+  })
+  @IsString()
+  @IsNotEmpty()
+  lineUserId: string;
+
+  @ApiProperty({
+    description: 'Pet type to select',
+    enum: PetType,
+    example: PetType.MOMOCO,
+  })
+  @IsEnum(PetType)
+  @IsNotEmpty()
+  petType: PetType;
 }
