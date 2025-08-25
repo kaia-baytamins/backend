@@ -2,7 +2,6 @@ import { NestFactory } from '@nestjs/core';
 import { ValidationPipe } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { DocumentBuilder, SwaggerModule } from '@nestjs/swagger';
-import { ThrottlerGuard } from '@nestjs/throttler';
 import * as cors from 'cors';
 
 import { AppModule } from './app.module';
@@ -37,7 +36,6 @@ async function bootstrap() {
   // Global guards
   const reflector = app.get('Reflector');
   app.useGlobalGuards(new JwtAuthGuard(reflector));
-  app.useGlobalGuards(app.get(ThrottlerGuard));
 
   // API prefix
   app.setGlobalPrefix('api/v1');

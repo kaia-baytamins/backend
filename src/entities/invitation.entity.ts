@@ -31,11 +31,11 @@ export class Invitation {
   @Column()
   expiredAt: Date;
 
-  @ManyToOne(() => User)
+  @ManyToOne(() => User, (user) => user.sentInvitations)
   @JoinColumn({ name: 'inviterId' })
   inviter: User;
 
-  @ManyToOne(() => User, { nullable: true })
+  @ManyToOne(() => User, (user) => user.receivedInvitations, { nullable: true })
   @JoinColumn({ name: 'inviteeId' })
   invitee: User;
 }

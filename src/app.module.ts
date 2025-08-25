@@ -5,7 +5,8 @@ import { ThrottlerModule } from '@nestjs/throttler';
 import { JwtModule } from '@nestjs/jwt';
 import { PassportModule } from '@nestjs/passport';
 import { ScheduleModule } from '@nestjs/schedule';
-import { APP_FILTER, APP_INTERCEPTOR } from '@nestjs/core';
+import { APP_FILTER, APP_GUARD, APP_INTERCEPTOR } from '@nestjs/core';
+import { ThrottlerGuard } from '@nestjs/throttler';
 
 import { AppController } from './app.controller';
 import { AppService } from './app.service';
@@ -38,6 +39,7 @@ import {
 } from './entities';
 import { Friendship } from './entities/friendship.entity';
 import { UserStats } from './entities/user-stats.entity';
+import { Invitation } from './entities/invitation.entity';
 import { InvitationsModule } from './invitations/invitations.module';
 import { FriendsModule } from './friends/friends.module';
 
@@ -78,6 +80,7 @@ import { FriendsModule } from './friends/friends.module';
           Leaderboard,
           Friendship,
           UserStats,
+          Invitation,
         ],
         synchronize: configService.get('nodeEnv') !== 'production',
         logging: configService.get('nodeEnv') === 'development',
@@ -135,6 +138,10 @@ import { FriendsModule } from './friends/friends.module';
     {
       provide: APP_INTERCEPTOR,
       useClass: LoggingInterceptor,
+    },
+    {
+      provide: APP_GUARD,
+      useClass: ThrottlerGuard,
     },
   ],
 })
