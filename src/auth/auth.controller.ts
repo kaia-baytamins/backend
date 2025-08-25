@@ -6,6 +6,7 @@ import {
   WalletLoginDto,
   NonceRequestDto,
   RefreshTokenDto,
+  LineLoginDto,
 } from './dto/auth.dto';
 import { Public } from './decorators/public.decorator';
 
@@ -114,5 +115,49 @@ export class AuthController {
   @ApiResponse({ status: 401, description: 'Invalid refresh token' })
   async refreshToken(@Body() refreshTokenDto: RefreshTokenDto) {
     return await this.authService.refreshToken(refreshTokenDto.refreshToken);
+  }
+
+  @Public()
+  @Post('line-login')
+  @HttpCode(HttpStatus.OK)
+  @ApiOperation({
+    summary: 'Login with LINE user ID',
+    description:
+      'Authenticate user using LINE user ID (sub) - simplified auth without wallet',
+  })
+  @ApiBody({ type: LineLoginDto })
+  @ApiResponse({
+    status: 200,
+    description: 'LINE login successful',
+    schema: {
+      properties: {
+        accessToken: {
+          type: 'string',
+          example: 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...',
+        },
+        refreshToken: {
+          type: 'string',
+          example: 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...',
+        },
+        user: {
+          type: 'object',
+          properties: {
+            id: { type: 'string', example: 'uuid-string' },
+            lineUserId: {
+              type: 'string',
+              example: 'U1234567890abcdef1234567890abcdef',
+            },
+            username: { type: 'string', example: 'John Doe' },
+            level: { type: 'number', example: 1 },
+            experience: { type: 'number', example: 0 },
+          },
+        },
+        isNewUser: { type: 'boolean', example: false },
+      },
+    },
+  })
+  @ApiResponse({ status: 400, description: 'Invalid LINE user data' })
+  async lineLogin(@Body() lineLoginDto: LineLoginDto) {
+    return await this.authService.lineLogin(lineLoginDto);
   }
 }

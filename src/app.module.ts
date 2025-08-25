@@ -36,6 +36,10 @@ import {
   MarketplaceItem,
   Leaderboard,
 } from './entities';
+import { Friendship } from './entities/friendship.entity';
+import { UserStats } from './entities/user-stats.entity';
+import { InvitationsModule } from './invitations/invitations.module';
+import { FriendsModule } from './friends/friends.module';
 
 @Module({
   imports: [
@@ -72,6 +76,8 @@ import {
           UserQuest,
           MarketplaceItem,
           Leaderboard,
+          Friendship,
+          UserStats,
         ],
         synchronize: configService.get('nodeEnv') !== 'production',
         logging: configService.get('nodeEnv') === 'development',
@@ -116,6 +122,8 @@ import {
     QuestsModule,
     MarketplaceModule,
     BlockchainModule,
+    InvitationsModule,
+    FriendsModule,
   ],
   controllers: [AppController],
   providers: [

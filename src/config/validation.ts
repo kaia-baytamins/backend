@@ -20,46 +20,13 @@ export const validationSchema = Joi.object({
   // KAIA blockchain validation
   KAIA_RPC_URL: Joi.string().uri().required(),
   KAIA_CHAIN_ID: Joi.number().default(8217),
-  KAIA_PRIVATE_KEY: Joi.string().when('NODE_ENV', {
-    is: 'production',
-    then: Joi.required(),
-    otherwise: Joi.optional(),
-  }),
+  KAIA_PRIVATE_KEY: Joi.string().optional().allow(''),
 
-  // Contract addresses validation
-  STAKING_CONTRACT_ADDRESS: Joi.string()
-    .pattern(/^0x[a-fA-F0-9]{40}$/)
-    .when('NODE_ENV', {
-      is: 'production',
-      then: Joi.required(),
-      otherwise: Joi.optional(),
-    }),
-  NFT_CONTRACT_ADDRESS: Joi.string()
-    .pattern(/^0x[a-fA-F0-9]{40}$/)
-    .when('NODE_ENV', {
-      is: 'production',
-      then: Joi.required(),
-      otherwise: Joi.optional(),
-    }),
-  MARKETPLACE_CONTRACT_ADDRESS: Joi.string()
-    .pattern(/^0x[a-fA-F0-9]{40}$/)
-    .when('NODE_ENV', {
-      is: 'production',
-      then: Joi.required(),
-      otherwise: Joi.optional(),
-    }),
+  // Contract addresses validation (removed for development)
 
-  // LINE configuration validation
-  LINE_CHANNEL_ID: Joi.string().when('NODE_ENV', {
-    is: 'production',
-    then: Joi.required(),
-    otherwise: Joi.optional(),
-  }),
-  LINE_CHANNEL_SECRET: Joi.string().when('NODE_ENV', {
-    is: 'production',
-    then: Joi.required(),
-    otherwise: Joi.optional(),
-  }),
+  // LINE configuration validation (removed for development)
+  LINE_CHANNEL_ID: Joi.string().optional().allow(''),
+  LINE_CHANNEL_SECRET: Joi.string().optional().allow(''),
 
   // CORS validation
   CORS_ORIGINS: Joi.string().default('http://localhost:3000'),

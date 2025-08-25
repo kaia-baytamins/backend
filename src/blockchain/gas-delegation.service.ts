@@ -1,24 +1,34 @@
 import { Injectable, Logger, BadRequestException } from '@nestjs/common';
-import { ConfigService } from '@nestjs/config';
 import { ethers } from 'ethers';
 
 import { BlockchainService } from './blockchain.service';
+import { KaiaTransactionService } from './kaia-transaction.service';
+import { KaiaRlpService } from './kaia-rlp.service';
+import {
+  KaiaFeeDelegatedTransaction,
+  KaiaTransactionError,
+} from './kaia-types';
 
-interface FeeDelegationRequest {
+export interface FeeDelegationRequest {
   from: string;
-  to: string;
-  data: string;
+  to?: string;
+  data?: string;
   gas: string;
   gasPrice?: string;
   value?: string;
+  memo?: string;
+  type?: 'value_transfer' | 'value_transfer_memo' | 'contract_execution';
+  userSignature?: string;
 }
 
-interface FeeDelegationResponse {
+export interface FeeDelegationResponse {
   success: boolean;
   txHash?: string;
   error?: string;
   gasUsed?: string;
   effectiveGasPrice?: string;
+  feePayer?: string;
+  transactionType?: string;
 }
 
 @Injectable()
@@ -29,7 +39,8 @@ export class GasDelegationService {
 
   constructor(
     private readonly blockchainService: BlockchainService,
-    private readonly configService: ConfigService,
+    private readonly kaiaTransactionService: KaiaTransactionService,
+    private readonly rlpService: KaiaRlpService,
   ) {
     // Set reasonable limits for gas delegation
     this.maxGasLimit = ethers.parseUnits('500000', 'wei'); // 500k gas
@@ -45,7 +56,7 @@ export class GasDelegationService {
   ): Promise<FeeDelegationResponse> {
     try {
       this.logger.log(
-        `Gas delegation request from ${request.from} to ${request.to}`,
+        `KAIA gas delegation request from ${request.from} to ${request.to || 'contract deployment'}`,
       );
 
       // Validate the request
@@ -54,38 +65,62 @@ export class GasDelegationService {
       // Get the wallet for fee delegation
       const wallet = this.blockchainService.getWallet();
       if (!wallet) {
-        throw new Error('Fee delegation wallet not configured');
+        throw new KaiaTransactionError('Fee delegation wallet not configured');
       }
 
-      // Prepare the transaction with fee delegation
-      const transaction = await this.prepareDelegatedTransaction(request);
+      // Determine transaction type
+      const transactionType = this.determineTransactionType(request);
 
-      // Send the transaction
-      const tx = await wallet.sendTransaction(transaction);
-      this.logger.log(`Fee delegated transaction sent: ${tx.hash}`);
+      // Create KAIA fee delegated transaction
+      const kaiaTransaction =
+        await this.kaiaTransactionService.createFeeDelegatedTransaction({
+          type: transactionType,
+          from: request.from,
+          to: request.to,
+          value: request.value || '0',
+          data: request.data,
+          memo: request.memo,
+          gas: request.gas,
+          gasPrice: request.gasPrice,
+        });
 
-      // Wait for confirmation
-      const receipt = await this.blockchainService.waitForTransaction(
-        tx.hash,
-        1,
+      // Send the fee delegated transaction
+      const txResponse =
+        await this.kaiaTransactionService.sendFeeDelegatedTransaction(
+          kaiaTransaction,
+          request.userSignature,
+        );
+
+      this.logger.log(
+        `KAIA fee delegated transaction sent: ${txResponse.hash}`,
       );
 
-      if (receipt) {
-        this.logger.log(`Fee delegation successful: ${tx.hash}`);
-        return {
-          success: true,
-          txHash: tx.hash,
-          gasUsed: receipt.gasUsed.toString(),
-          effectiveGasPrice: receipt.gasPrice?.toString(),
-        };
-      } else {
-        throw new Error('Transaction receipt not found');
-      }
+      // Get receipt for additional details
+      const receipt = await this.kaiaTransactionService.getTransactionReceipt(
+        txResponse.hash,
+      );
+
+      return {
+        success: true,
+        txHash: txResponse.hash,
+        gasUsed: receipt?.gasUsed,
+        effectiveGasPrice: receipt?.gasPrice,
+        feePayer: txResponse.feePayer,
+        transactionType: txResponse.type,
+      };
     } catch (error) {
-      this.logger.error('Gas delegation failed:', error);
+      this.logger.error('KAIA gas delegation failed:', error);
+
+      if (error instanceof KaiaTransactionError) {
+        return {
+          success: false,
+          error: `KAIA Transaction Error: ${error.message}`,
+        };
+      }
+
       return {
         success: false,
-        error: error.message,
+        error: error.message || 'Unknown error occurred',
       };
     }
   }
@@ -96,12 +131,13 @@ export class GasDelegationService {
   private async validateDelegationRequest(
     request: FeeDelegationRequest,
   ): Promise<void> {
-    // Validate addresses
+    // Validate from address
     if (!this.blockchainService.isValidAddress(request.from)) {
       throw new BadRequestException('Invalid from address');
     }
 
-    if (!this.blockchainService.isValidAddress(request.to)) {
+    // Validate to address if provided (not required for contract deployment)
+    if (request.to && !this.blockchainService.isValidAddress(request.to)) {
       throw new BadRequestException('Invalid to address');
     }
 
@@ -123,6 +159,13 @@ export class GasDelegationService {
       }
     }
 
+    // Validate transaction type
+    if (request.type && !this.isValidTransactionType(request.type)) {
+      throw new BadRequestException(
+        `Invalid transaction type: ${request.type}`,
+      );
+    }
+
     // Validate that the from address has enough balance for the value (not gas)
     if (request.value && BigInt(request.value) > 0) {
       const balance = await this.blockchainService.getBalance(request.from);
@@ -137,43 +180,68 @@ export class GasDelegationService {
   }
 
   /**
-   * Prepare transaction with fee delegation
+   * Determine the appropriate KAIA transaction type
    */
-  private async prepareDelegatedTransaction(
+  private determineTransactionType(
     request: FeeDelegationRequest,
-  ): Promise<ethers.TransactionRequest> {
-    const gasPrice = request.gasPrice
-      ? BigInt(request.gasPrice)
-      : await this.blockchainService.getGasPrice();
+  ): 'value_transfer' | 'value_transfer_memo' | 'contract_execution' {
+    // If type is explicitly provided, use it
+    if (request.type) {
+      return request.type;
+    }
 
-    return {
-      to: request.to,
-      data: request.data,
-      gasLimit: BigInt(request.gas),
-      gasPrice: gasPrice,
-      value: request.value ? BigInt(request.value) : 0n,
-      // For KAIA fee delegation, the fee payer signs the transaction
-      // The actual implementation would depend on KAIA's specific fee delegation mechanism
-    };
+    // Auto-determine based on request parameters
+    if (request.memo) {
+      return 'value_transfer_memo';
+    }
+
+    if (request.data && request.data !== '0x') {
+      return 'contract_execution';
+    }
+
+    return 'value_transfer';
   }
 
   /**
-   * Estimate cost of gas delegation
+   * Check if transaction type is valid
+   */
+  private isValidTransactionType(
+    type: string,
+  ): type is 'value_transfer' | 'value_transfer_memo' | 'contract_execution' {
+    return [
+      'value_transfer',
+      'value_transfer_memo',
+      'contract_execution',
+    ].includes(type);
+  }
+
+  /**
+   * Estimate cost of gas delegation using KAIA transaction service
    */
   async estimateDelegationCost(request: FeeDelegationRequest): Promise<{
     estimatedGas: string;
     gasPrice: string;
     estimatedCost: string;
+    transactionType: string;
   }> {
     try {
-      const transaction = {
-        to: request.to,
-        data: request.data,
-        value: request.value ? BigInt(request.value) : 0n,
-      };
+      // Create the KAIA transaction for estimation
+      const transactionType = this.determineTransactionType(request);
+      const kaiaTransaction =
+        await this.kaiaTransactionService.createFeeDelegatedTransaction({
+          type: transactionType,
+          from: request.from,
+          to: request.to,
+          value: request.value || '0',
+          data: request.data,
+          memo: request.memo,
+          gas: request.gas,
+          gasPrice: request.gasPrice,
+        });
 
+      // Estimate gas using KAIA transaction service
       const estimatedGas =
-        await this.blockchainService.estimateGas(transaction);
+        await this.kaiaTransactionService.estimateGas(kaiaTransaction);
       const gasPrice = await this.blockchainService.getGasPrice();
       const estimatedCost = estimatedGas * gasPrice;
 
@@ -181,9 +249,10 @@ export class GasDelegationService {
         estimatedGas: estimatedGas.toString(),
         gasPrice: gasPrice.toString(),
         estimatedCost: this.blockchainService.formatKaia(estimatedCost),
+        transactionType: kaiaTransaction.type,
       };
     } catch (error) {
-      this.logger.error('Error estimating delegation cost:', error);
+      this.logger.error('Error estimating KAIA delegation cost:', error);
       throw error;
     }
   }
@@ -224,42 +293,75 @@ export class GasDelegationService {
     totalDelegations: number;
     totalGasCost: string;
     averageGasUsed: string;
+    feePayer: string | null;
+    supportedTypes: string[];
   }> {
     // In a real implementation, this would query a database or tracking system
-    // For now, return placeholder data
+    // For now, return placeholder data with KAIA-specific information
     return {
       totalDelegations: 0,
       totalGasCost: '0',
       averageGasUsed: '0',
+      feePayer: this.getFeePayer(),
+      supportedTypes: this.getSupportedTransactionTypes(),
     };
   }
 
   /**
-   * Create a fee-delegated transaction signature for KAIA
-   * This is specific to KAIA's fee delegation mechanism
+   * Create a fee-delegated transaction for user signing
+   * Returns the transaction data that needs to be signed by the user
    */
-  async createFeeDelegatedSignature(
-    userSignature: string,
-    transaction: ethers.TransactionRequest,
-  ): Promise<string> {
-    const wallet = this.blockchainService.getWallet();
-    if (!wallet) {
-      throw new Error('Fee delegation wallet not configured');
-    }
-
+  async createTransactionForSigning(request: FeeDelegationRequest): Promise<{
+    transaction: KaiaFeeDelegatedTransaction;
+    encodedTx: string;
+    transactionHash: string;
+  }> {
     try {
-      // This is a simplified version - actual KAIA fee delegation
-      // would require specific transaction encoding
-      const txHash = ethers.keccak256(
-        ethers.toUtf8Bytes(JSON.stringify(transaction)),
-      );
-      const feePayerSignature = await wallet.signMessage(txHash);
+      // Validate the request
+      await this.validateDelegationRequest(request);
 
-      // Combine user and fee payer signatures according to KAIA spec
-      return `${userSignature}:${feePayerSignature}`;
+      // Create the KAIA transaction
+      const transactionType = this.determineTransactionType(request);
+      const kaiaTransaction =
+        await this.kaiaTransactionService.createFeeDelegatedTransaction({
+          type: transactionType,
+          from: request.from,
+          to: request.to,
+          value: request.value || '0',
+          data: request.data,
+          memo: request.memo,
+          gas: request.gas,
+          gasPrice: request.gasPrice,
+        });
+
+      // Encode transaction for signing
+      const encodedTx =
+        this.rlpService.encodeTransactionForSigning(kaiaTransaction);
+      const transactionHash = ethers.keccak256(encodedTx);
+
+      return {
+        transaction: kaiaTransaction,
+        encodedTx,
+        transactionHash,
+      };
     } catch (error) {
-      this.logger.error('Error creating fee delegated signature:', error);
+      this.logger.error('Error creating transaction for signing:', error);
       throw error;
     }
+  }
+
+  /**
+   * Get supported transaction types
+   */
+  getSupportedTransactionTypes(): string[] {
+    return ['value_transfer', 'value_transfer_memo', 'contract_execution'];
+  }
+
+  /**
+   * Get fee payer address
+   */
+  getFeePayer(): string | null {
+    const wallet = this.blockchainService.getWallet();
+    return wallet ? wallet.address : null;
   }
 }

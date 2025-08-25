@@ -11,6 +11,9 @@ import { Pet } from './pet.entity';
 import { Spaceship } from './spaceship.entity';
 import { ExplorationRecord } from './exploration-record.entity';
 import { MarketplaceItem } from './marketplace-item.entity';
+import { Friendship } from './friendship.entity';
+import { Invitation } from './invitation.entity';
+import { UserStats } from './user-stats.entity';
 
 @Entity('users')
 export class User {
@@ -26,7 +29,7 @@ export class User {
   @Column({ nullable: true })
   email: string;
 
-  @Column({ nullable: true })
+  @Column({ unique: true, nullable: true })
   lineUserId: string;
 
   @Column({ type: 'decimal', precision: 20, scale: 8, default: 0 })
@@ -70,4 +73,19 @@ export class User {
 
   @OneToMany(() => MarketplaceItem, (item) => item.seller)
   marketplaceItems: MarketplaceItem[];
+
+  @OneToMany(() => Friendship, (friendship) => friendship.user)
+  friendships: Friendship[];
+
+  @OneToMany(() => Friendship, (friendship) => friendship.friend)
+  friendsOf: Friendship[];
+
+  @OneToMany(() => Invitation, (invitation) => invitation.inviter)
+  sentInvitations: Invitation[];
+
+  @OneToMany(() => Invitation, (invitation) => invitation.invitee)
+  receivedInvitations: Invitation[];
+
+  @OneToOne(() => UserStats, (stats) => stats.user, { cascade: true })
+  stats: UserStats;
 }

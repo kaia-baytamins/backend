@@ -7,11 +7,13 @@ import { ethers } from 'ethers';
 import * as crypto from 'crypto';
 
 import { User, Pet, Spaceship, PetType, SpaceshipType } from '../entities';
-import { WalletLoginDto, NonceRequestDto } from './dto/auth.dto';
+import { WalletLoginDto, NonceRequestDto, LineLoginDto } from './dto/auth.dto';
+import { UserStats } from '../entities/user-stats.entity';
 
 interface JwtPayload {
   sub: string;
-  walletAddress: string;
+  walletAddress?: string;
+  lineUserId?: string;
   type: 'access' | 'refresh';
 }
 
@@ -30,6 +32,8 @@ export class AuthService {
     private readonly petRepository: Repository<Pet>,
     @InjectRepository(Spaceship)
     private readonly spaceshipRepository: Repository<Spaceship>,
+    @InjectRepository(UserStats)
+    private readonly userStatsRepository: Repository<UserStats>,
     private readonly jwtService: JwtService,
     private readonly configService: ConfigService,
   ) {}
@@ -107,6 +111,43 @@ export class AuthService {
     const { accessToken, refreshToken } = await this.generateTokens(user);
 
     return { accessToken, refreshToken, user };
+  }
+
+  /**
+   * LINE authentication - simplified version
+   */
+  async lineLogin(lineLoginDto: LineLoginDto): Promise<{
+    accessToken: string;
+    refreshToken: string;
+    user: User;
+    isNewUser: boolean;
+  }> {
+    const { lineUserId, displayName } = lineLoginDto;
+
+    // Find or create user by LINE ID
+    let user = await this.userRepository.findOne({
+      where: { lineUserId },
+      relations: ['pet', 'spaceship', 'stats'],
+    });
+
+    let isNewUser = false;
+    if (!user) {
+      user = await this.createNewLineUser(lineUserId, displayName);
+      isNewUser = true;
+    } else {
+      // Update profile info and last login
+      if (displayName && user.username !== displayName) {
+        user.username = displayName;
+      }
+      user.lastLoginAt = new Date();
+      await this.userRepository.save(user);
+    }
+
+    // Generate tokens
+    const { accessToken, refreshToken } =
+      await this.generateTokensForLineUser(user);
+
+    return { accessToken, refreshToken, user, isNewUser };
   }
 
   /**
@@ -203,27 +244,56 @@ export class AuthService {
     });
 
     const savedUser = await this.userRepository.save(user);
+    await this.createDefaultAssetsAndStats(savedUser);
+    return savedUser;
+  }
 
+  /**
+   * Create new LINE user (without wallet)
+   */
+  private async createNewLineUser(
+    lineUserId: string,
+    displayName?: string,
+  ): Promise<User> {
+    const user = this.userRepository.create({
+      lineUserId,
+      username: displayName,
+      lastLoginAt: new Date(),
+    });
+
+    const savedUser = await this.userRepository.save(user);
+    await this.createDefaultAssetsAndStats(savedUser);
+    return savedUser;
+  }
+
+  /**
+   * Create default pet, spaceship, and stats for new user
+   */
+  private async createDefaultAssetsAndStats(user: User): Promise<void> {
     // Create default pet
     const pet = this.petRepository.create({
       name: 'Companion',
       type: PetType.DOG,
-      ownerId: savedUser.id,
+      ownerId: user.id,
     });
 
     // Create default spaceship
     const spaceship = this.spaceshipRepository.create({
       name: 'Explorer I',
       type: SpaceshipType.BASIC,
-      ownerId: savedUser.id,
+      ownerId: user.id,
+    });
+
+    // Create user stats
+    const stats = this.userStatsRepository.create({
+      userId: user.id,
     });
 
     await Promise.all([
       this.petRepository.save(pet),
       this.spaceshipRepository.save(spaceship),
+      this.userStatsRepository.save(stats),
     ]);
-
-    return savedUser;
   }
 
   /**
@@ -250,6 +320,35 @@ export class AuthService {
 
     const refreshToken = this.jwtService.sign(refreshPayload, {
       expiresIn: '7d', // Refresh token valid for 7 days
+    });
+
+    return { accessToken, refreshToken };
+  }
+
+  /**
+   * Generate tokens for LINE user
+   */
+  private async generateTokensForLineUser(
+    user: User,
+  ): Promise<{ accessToken: string; refreshToken: string }> {
+    const accessPayload: JwtPayload = {
+      sub: user.id,
+      lineUserId: user.lineUserId,
+      type: 'access',
+    };
+
+    const refreshPayload: JwtPayload = {
+      sub: user.id,
+      lineUserId: user.lineUserId,
+      type: 'refresh',
+    };
+
+    const accessToken = this.jwtService.sign(accessPayload, {
+      expiresIn: this.configService.get('jwt.expirationTime'),
+    });
+
+    const refreshToken = this.jwtService.sign(refreshPayload, {
+      expiresIn: '7d',
     });
 
     return { accessToken, refreshToken };

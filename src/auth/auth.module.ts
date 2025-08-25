@@ -7,10 +7,11 @@ import { AuthService } from './auth.service';
 import { AuthController } from './auth.controller';
 import { JwtStrategy } from './strategies/jwt.strategy';
 import { User, Pet, Spaceship } from '../entities';
+import { UserStats } from '../entities/user-stats.entity';
 
 @Module({
   imports: [
-    TypeOrmModule.forFeature([User, Pet, Spaceship]),
+    TypeOrmModule.forFeature([User, Pet, Spaceship, UserStats]),
     PassportModule,
     JwtModule,
   ],
