@@ -71,42 +71,44 @@ export class DefiQuestController {
   }
 
   /**
-   * Participate in DeFi quest (simulate DeFi interaction)
+   * Prepare DeFi quest transaction for user signing
    */
-  @Post('participate')
+  @Post('prepare-transaction')
   @HttpCode(HttpStatus.OK)
-  async participateInDefiQuest(
+  async prepareDefiQuestTransaction(
     @CurrentUser() user: User,
     @Body() participationDto: DefiQuestParticipationDto,
   ) {
     const { questType, amount } = participationDto;
 
     try {
-      let transactionHash: string;
+      let transactionData;
 
       switch (questType) {
         case 'staking':
-          transactionHash = await this.defiService.stakeTokens(
+          transactionData = await this.defiService.prepareStakeTransaction(
             user.walletAddress,
             amount,
           );
           break;
 
         case 'lending':
-          transactionHash = await this.defiService.supplyToLending(
-            user.walletAddress,
-            amount,
-          );
+          transactionData =
+            await this.defiService.prepareLendingSupplyTransaction(
+              user.walletAddress,
+              amount,
+            );
           break;
 
         case 'lp_providing':
           // For LP, we assume equal amounts of token A and B
           const halfAmount = (parseFloat(amount) / 2).toString();
-          transactionHash = await this.defiService.addLiquidityToAmm(
-            user.walletAddress,
-            halfAmount,
-            halfAmount,
-          );
+          transactionData =
+            await this.defiService.prepareAmmLiquidityTransaction(
+              user.walletAddress,
+              halfAmount,
+              halfAmount,
+            );
           break;
 
         default:
@@ -115,14 +117,20 @@ export class DefiQuestController {
 
       return {
         success: true,
-        transactionHash,
-        message: `Successfully participated in ${questType} quest`,
+        transactionData,
+        message: `Transaction prepared for ${questType} quest. Please sign and submit to /blockchain/gas-delegation/delegate`,
+        instructions: {
+          step1: 'Sign this transaction with your wallet',
+          step2:
+            'Submit the signed transaction to /blockchain/gas-delegation/delegate endpoint',
+          step3: 'Gas fees will be covered by our delegation service',
+        },
       };
     } catch (error) {
       return {
         success: false,
         error: error.message,
-        message: `Failed to participate in ${questType} quest`,
+        message: `Failed to prepare transaction for ${questType} quest`,
       };
     }
   }
@@ -200,26 +208,33 @@ export class DefiQuestController {
   }
 
   /**
-   * Request faucet tokens for testing
+   * Prepare faucet transaction for user signing
    */
-  @Post('faucet')
+  @Post('prepare-faucet')
   @HttpCode(HttpStatus.OK)
-  async requestFaucetTokens(@CurrentUser() user: User) {
+  async prepareFaucetTransaction(@CurrentUser() user: User) {
     try {
-      const transactionHash = await this.defiService.requestFaucetTokens(
+      const transactionData = await this.defiService.prepareFaucetTransaction(
         user.walletAddress,
       );
 
       return {
         success: true,
-        transactionHash,
-        message: 'Faucet tokens requested successfully',
+        transactionData,
+        message:
+          'Faucet transaction prepared. Please sign and submit to /blockchain/gas-delegation/delegate',
+        instructions: {
+          step1: 'Sign this transaction with your wallet',
+          step2:
+            'Submit the signed transaction to /blockchain/gas-delegation/delegate endpoint',
+          step3: 'Gas fees will be covered by our delegation service',
+        },
       };
     } catch (error) {
       return {
         success: false,
         error: error.message,
-        message: 'Failed to request faucet tokens',
+        message: 'Failed to prepare faucet transaction',
       };
     }
   }

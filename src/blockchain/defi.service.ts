@@ -52,6 +52,15 @@ export interface DefiStats {
   ammReserveB: string;
 }
 
+export interface DefiTransactionData {
+  to: string;
+  data: string;
+  gas: string;
+  gasPrice: string;
+  value: string;
+  type: 'contract_execution';
+}
+
 @Injectable()
 export class DefiService {
   private readonly logger = new Logger(DefiService.name);
@@ -243,21 +252,45 @@ export class DefiService {
   }
 
   /**
-   * Stake USDT tokens
+   * Prepare staking transaction data for user signing
    */
-  async stakeTokens(userAddress: string, amount: string): Promise<string> {
+  async prepareStakeTransaction(
+    userAddress: string,
+    amount: string,
+  ): Promise<DefiTransactionData> {
     try {
       const stakingContract = this.contractService.getStakingContract();
       const amountWei = this.blockchainService.parseKaia(amount);
 
-      // This would require user's signature in a real implementation
-      const tx = await stakingContract.stake(amountWei);
-      await tx.wait();
+      // Create transaction data for staking
+      const stakingContractInterface = stakingContract.interface;
+      const data = stakingContractInterface.encodeFunctionData('stake', [
+        amountWei,
+      ]);
 
-      this.logger.log(`User ${userAddress} staked ${amount} tokens`);
-      return tx.hash;
+      // Get gas price and estimate gas
+      const gasPrice = await this.blockchainService.getGasPrice();
+      const gasEstimate = await stakingContract.stake.estimateGas(amountWei, {
+        from: userAddress,
+      });
+
+      this.logger.log(
+        `Prepared stake transaction for ${userAddress}: ${amount} tokens`,
+      );
+
+      return {
+        to: await stakingContract.getAddress(),
+        data: data,
+        gas: ((gasEstimate * 110n) / 100n).toString(), // Add 10% buffer
+        gasPrice: gasPrice.toString(),
+        value: '0',
+        type: 'contract_execution',
+      };
     } catch (error) {
-      this.logger.error(`Error staking tokens for ${userAddress}:`, error);
+      this.logger.error(
+        `Error preparing stake transaction for ${userAddress}:`,
+        error,
+      );
       throw error;
     }
   }
@@ -282,23 +315,43 @@ export class DefiService {
   }
 
   /**
-   * Supply tokens to lending protocol
+   * Prepare lending supply transaction data for user signing
    */
-  async supplyToLending(userAddress: string, amount: string): Promise<string> {
+  async prepareLendingSupplyTransaction(
+    userAddress: string,
+    amount: string,
+  ): Promise<DefiTransactionData> {
     try {
       const lendingContract = this.contractService.getLendingContract();
       const amountWei = this.blockchainService.parseKaia(amount);
 
-      const tx = await lendingContract.supply(amountWei);
-      await tx.wait();
+      // Create transaction data for lending supply
+      const lendingContractInterface = lendingContract.interface;
+      const data = lendingContractInterface.encodeFunctionData('supply', [
+        amountWei,
+      ]);
+
+      // Get gas price and estimate gas
+      const gasPrice = await this.blockchainService.getGasPrice();
+      const gasEstimate = await lendingContract.supply.estimateGas(amountWei, {
+        from: userAddress,
+      });
 
       this.logger.log(
-        `User ${userAddress} supplied ${amount} tokens to lending`,
+        `Prepared lending supply transaction for ${userAddress}: ${amount} tokens`,
       );
-      return tx.hash;
+
+      return {
+        to: await lendingContract.getAddress(),
+        data: data,
+        gas: ((gasEstimate * 110n) / 100n).toString(), // Add 10% buffer
+        gasPrice: gasPrice.toString(),
+        value: '0',
+        type: 'contract_execution',
+      };
     } catch (error) {
       this.logger.error(
-        `Error supplying to lending for ${userAddress}:`,
+        `Error preparing lending supply transaction for ${userAddress}:`,
         error,
       );
       throw error;
@@ -306,27 +359,52 @@ export class DefiService {
   }
 
   /**
-   * Add liquidity to AMM
+   * Prepare AMM liquidity transaction data for user signing
    */
-  async addLiquidityToAmm(
+  async prepareAmmLiquidityTransaction(
     userAddress: string,
     amountA: string,
     amountB: string,
-  ): Promise<string> {
+  ): Promise<DefiTransactionData> {
     try {
       const ammContract = this.contractService.getAmmContract();
       const amountAWei = this.blockchainService.parseKaia(amountA);
       const amountBWei = this.blockchainService.parseKaia(amountB);
 
-      const tx = await ammContract.addLiquidity(amountAWei, amountBWei);
-      await tx.wait();
+      // Create transaction data for AMM liquidity
+      const ammContractInterface = ammContract.interface;
+      const data = ammContractInterface.encodeFunctionData('addLiquidity', [
+        amountAWei,
+        amountBWei,
+      ]);
+
+      // Get gas price and estimate gas
+      const gasPrice = await this.blockchainService.getGasPrice();
+      const gasEstimate = await ammContract.addLiquidity.estimateGas(
+        amountAWei,
+        amountBWei,
+        {
+          from: userAddress,
+        },
+      );
 
       this.logger.log(
-        `User ${userAddress} added liquidity: ${amountA}/${amountB}`,
+        `Prepared AMM liquidity transaction for ${userAddress}: ${amountA}/${amountB}`,
       );
-      return tx.hash;
+
+      return {
+        to: await ammContract.getAddress(),
+        data: data,
+        gas: ((gasEstimate * 110n) / 100n).toString(), // Add 10% buffer
+        gasPrice: gasPrice.toString(),
+        value: '0',
+        type: 'contract_execution',
+      };
     } catch (error) {
-      this.logger.error(`Error adding liquidity for ${userAddress}:`, error);
+      this.logger.error(
+        `Error preparing AMM liquidity transaction for ${userAddress}:`,
+        error,
+      );
       throw error;
     }
   }
@@ -394,9 +472,11 @@ export class DefiService {
   }
 
   /**
-   * Request tokens from faucet
+   * Prepare faucet transaction data for user signing
    */
-  async requestFaucetTokens(userAddress: string): Promise<string> {
+  async prepareFaucetTransaction(
+    userAddress: string,
+  ): Promise<DefiTransactionData> {
     try {
       const faucetContract = this.contractService.getFaucetContract();
 
@@ -405,14 +485,35 @@ export class DefiService {
         throw new Error('Faucet cooldown period not yet passed');
       }
 
-      const tx = await faucetContract.requestTokensFor(userAddress);
-      await tx.wait();
+      // Create transaction data for faucet request
+      const faucetContractInterface = faucetContract.interface;
+      const data = faucetContractInterface.encodeFunctionData(
+        'requestTokensFor',
+        [userAddress],
+      );
 
-      this.logger.log(`Faucet tokens requested for ${userAddress}`);
-      return tx.hash;
+      // Get gas price and estimate gas
+      const gasPrice = await this.blockchainService.getGasPrice();
+      const gasEstimate = await faucetContract.requestTokensFor.estimateGas(
+        userAddress,
+        {
+          from: userAddress,
+        },
+      );
+
+      this.logger.log(`Prepared faucet transaction for ${userAddress}`);
+
+      return {
+        to: await faucetContract.getAddress(),
+        data: data,
+        gas: ((gasEstimate * 110n) / 100n).toString(), // Add 10% buffer
+        gasPrice: gasPrice.toString(),
+        value: '0',
+        type: 'contract_execution',
+      };
     } catch (error) {
       this.logger.error(
-        `Error requesting faucet tokens for ${userAddress}:`,
+        `Error preparing faucet transaction for ${userAddress}:`,
         error,
       );
       throw error;
