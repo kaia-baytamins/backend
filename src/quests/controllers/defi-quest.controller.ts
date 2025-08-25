@@ -4,11 +4,9 @@ import {
   Post,
   Param,
   Body,
-  UseGuards,
   HttpStatus,
   HttpCode,
 } from '@nestjs/common';
-import { JwtAuthGuard } from '../../auth/guards/jwt-auth.guard';
 import { CurrentUser } from '../../auth/decorators/current-user.decorator';
 import { User } from '../../entities';
 import { QuestsService } from '../quests.service';
@@ -21,7 +19,6 @@ interface DefiQuestParticipationDto {
 }
 
 @Controller('quests/defi')
-@UseGuards(JwtAuthGuard)
 export class DefiQuestController {
   constructor(
     private readonly questsService: QuestsService,

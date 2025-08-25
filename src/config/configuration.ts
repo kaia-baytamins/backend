@@ -10,11 +10,6 @@ export default () => ({
     database: process.env.DB_DATABASE || 'kaia_game',
   },
 
-  jwt: {
-    secret: process.env.JWT_SECRET || 'change-this-secret',
-    expirationTime: process.env.JWT_EXPIRATION_TIME || '24h',
-  },
-
   kaia: {
     rpcUrl: process.env.KAIA_RPC_URL || 'https://public-en.node.kaia.io',
     chainId: parseInt(process.env.KAIA_CHAIN_ID, 10) || 8217,

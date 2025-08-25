@@ -20,7 +20,7 @@ export class User {
   @PrimaryGeneratedColumn('uuid')
   id: string;
 
-  @Column({ unique: true })
+  @Column({ unique: true, nullable: true })
   walletAddress: string;
 
   @Column({ nullable: true })
@@ -31,6 +31,9 @@ export class User {
 
   @Column({ unique: true, nullable: true })
   lineUserId: string;
+
+  @Column({ nullable: true })
+  avatar: string;
 
   @Column({ type: 'decimal', precision: 20, scale: 8, default: 0 })
   kaiaBalance: number;

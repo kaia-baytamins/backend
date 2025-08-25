@@ -14,6 +14,7 @@ import {
   ApiResponse,
   ApiBearerAuth,
   ApiParam,
+  ApiSecurity,
 } from '@nestjs/swagger';
 
 import { MarketplaceService } from './marketplace.service';
@@ -21,7 +22,6 @@ import {
   CreateMarketplaceItemDto,
   GetMarketplaceItemsDto,
 } from './dto/marketplace.dto';
-import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
 import { CurrentUser } from '../auth/decorators/current-user.decorator';
 import { User } from '../entities/user.entity';
 import { Public } from '../auth/decorators/public.decorator';
@@ -146,8 +146,7 @@ export class MarketplaceController {
   }
 
   @Post()
-  @UseGuards(JwtAuthGuard)
-  @ApiBearerAuth('JWT')
+  @ApiSecurity('LineUserID')
   @ApiOperation({
     summary: 'List item for sale',
     description: 'Create a new marketplace listing for an item',
@@ -179,8 +178,7 @@ export class MarketplaceController {
   }
 
   @Post(':itemId/purchase')
-  @UseGuards(JwtAuthGuard)
-  @ApiBearerAuth('JWT')
+  @ApiSecurity('LineUserID')
   @ApiOperation({
     summary: 'Purchase marketplace item',
     description: 'Purchase a marketplace item with KAIA tokens',
@@ -220,8 +218,7 @@ export class MarketplaceController {
   }
 
   @Delete(':itemId')
-  @UseGuards(JwtAuthGuard)
-  @ApiBearerAuth('JWT')
+  @ApiSecurity('LineUserID')
   @ApiOperation({
     summary: 'Cancel item listing',
     description: 'Cancel an active marketplace listing',
@@ -246,8 +243,7 @@ export class MarketplaceController {
   }
 
   @Get('my/:type')
-  @UseGuards(JwtAuthGuard)
-  @ApiBearerAuth('JWT')
+  @ApiSecurity('LineUserID')
   @ApiOperation({
     summary: 'Get user marketplace items',
     description:
@@ -285,8 +281,7 @@ export class MarketplaceController {
   }
 
   @Post(':itemId/favorite')
-  @UseGuards(JwtAuthGuard)
-  @ApiBearerAuth('JWT')
+  @ApiSecurity('LineUserID')
   @ApiOperation({
     summary: 'Add item to favorites',
     description: 'Add a marketplace item to user favorites',

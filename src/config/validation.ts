@@ -13,10 +13,6 @@ export const validationSchema = Joi.object({
   DB_PASSWORD: Joi.string().required(),
   DB_DATABASE: Joi.string().required(),
 
-  // JWT validation
-  JWT_SECRET: Joi.string().min(32).required(),
-  JWT_EXPIRATION_TIME: Joi.string().default('24h'),
-
   // KAIA blockchain validation
   KAIA_RPC_URL: Joi.string().uri().required(),
   KAIA_CHAIN_ID: Joi.number().default(8217),

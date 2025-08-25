@@ -1,22 +1,20 @@
-import { Controller, Get, Post, Param, Query, UseGuards } from '@nestjs/common';
+import { Controller, Get, Post, Param, Query } from '@nestjs/common';
 import {
   ApiTags,
   ApiOperation,
   ApiResponse,
-  ApiBearerAuth,
+  ApiSecurity,
   ApiParam,
 } from '@nestjs/swagger';
 
 import { QuestsService } from './quests.service';
 import { GetQuestsDto } from './dto/quest.dto';
-import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
 import { CurrentUser } from '../auth/decorators/current-user.decorator';
 import { User } from '../entities/user.entity';
 
 @ApiTags('Quests')
 @Controller('quests')
-@UseGuards(JwtAuthGuard)
-@ApiBearerAuth('JWT')
+@ApiSecurity('LineUserID')
 export class QuestsController {
   constructor(private readonly questsService: QuestsService) {}
 

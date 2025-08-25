@@ -5,7 +5,7 @@ import { DocumentBuilder, SwaggerModule } from '@nestjs/swagger';
 import * as cors from 'cors';
 
 import { AppModule } from './app.module';
-import { JwtAuthGuard } from './auth/guards/jwt-auth.guard';
+import { SimpleAuthGuard } from './auth/guards/simple-auth.guard';
 
 async function bootstrap() {
   const app = await NestFactory.create(AppModule);
@@ -23,19 +23,17 @@ async function bootstrap() {
     }),
   );
 
-  // CORS configuration
+  // CORS configuration using allowed origins from config
   app.use(
     cors({
       origin: configService.get('cors.origins'),
       credentials: true,
       methods: ['GET', 'POST', 'PUT', 'DELETE', 'PATCH', 'OPTIONS'],
-      allowedHeaders: ['Content-Type', 'Authorization'],
+      allowedHeaders: ['Content-Type', 'Authorization', 'x-line-user-id'],
     }),
   );
 
-  // Global guards
-  const reflector = app.get('Reflector');
-  app.useGlobalGuards(new JwtAuthGuard(reflector));
+  // Auth guard is configured as APP_GUARD in app.module.ts
 
   // API prefix
   app.setGlobalPrefix('api/v1');
@@ -46,14 +44,14 @@ async function bootstrap() {
       .setTitle('KAIA Game API')
       .setDescription('API for KAIA Animal Space Exploration DeFi Game')
       .setVersion('1.0')
-      .addBearerAuth(
+      .addApiKey(
         {
-          type: 'http',
-          scheme: 'bearer',
-          bearerFormat: 'JWT',
-          description: 'Enter JWT token',
+          type: 'apiKey',
+          name: 'x-line-user-id',
+          in: 'header',
+          description: 'LINE User ID from frontend',
         },
-        'JWT',
+        'LineUserID',
       )
       .addTag('Authentication', 'Wallet-based authentication endpoints')
       .addTag('Users', 'User management and profile endpoints')

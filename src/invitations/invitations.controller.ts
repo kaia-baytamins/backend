@@ -11,7 +11,6 @@ import { ApiTags, ApiOperation, ApiResponse, ApiBody } from '@nestjs/swagger';
 
 import { InvitationsService } from './invitations.service';
 import { AcceptInvitationDto } from './dto/invitation.dto';
-import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
 import { CurrentUser } from '../auth/decorators/current-user.decorator';
 import { User } from '../entities/user.entity';
 import { Public } from '../auth/decorators/public.decorator';
@@ -66,7 +65,6 @@ export class InvitationsController {
     return await this.invitationsService.acceptInvitation(acceptInvitationDto);
   }
 
-  @UseGuards(JwtAuthGuard)
   @Get('stats')
   @ApiOperation({
     summary: 'Get invitation statistics',

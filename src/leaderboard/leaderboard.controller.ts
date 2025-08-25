@@ -12,10 +12,10 @@ import {
   ApiResponse,
   ApiBearerAuth,
   ApiQuery,
+  ApiSecurity,
 } from '@nestjs/swagger';
 
 import { LeaderboardService } from './leaderboard.service';
-import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
 import { CurrentUser } from '../auth/decorators/current-user.decorator';
 import { User } from '../entities/user.entity';
 import { LeaderboardType, LeaderboardPeriod } from '../entities';
@@ -91,8 +91,7 @@ export class LeaderboardController {
   }
 
   @Get('my-rankings')
-  @UseGuards(JwtAuthGuard)
-  @ApiBearerAuth('JWT')
+  @ApiSecurity('LineUserID')
   @ApiOperation({
     summary: 'Get current user rankings',
     description:
@@ -122,8 +121,7 @@ export class LeaderboardController {
   }
 
   @Get('my-rank')
-  @UseGuards(JwtAuthGuard)
-  @ApiBearerAuth('JWT')
+  @ApiSecurity('LineUserID')
   @ApiOperation({
     summary: 'Get user rank in specific leaderboard',
     description: "Get the authenticated user's rank in a specific leaderboard",

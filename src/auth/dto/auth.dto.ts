@@ -62,14 +62,14 @@ export class NonceRequestDto {
   walletAddress: string;
 }
 
-export class LineLoginDto {
+export class SimpleLineLoginDto {
   @ApiProperty({
-    description: 'LINE user ID (sub) from LINE auth',
+    description: 'LINE user ID from useLiff profile',
     example: 'U1234567890abcdef1234567890abcdef',
   })
   @IsString()
   @IsNotEmpty()
-  lineUserId: string;
+  userId: string;
 
   @ApiProperty({
     description: 'Display name from LINE profile',
@@ -81,11 +81,11 @@ export class LineLoginDto {
   displayName?: string;
 
   @ApiProperty({
-    description: 'Profile image URL from LINE',
+    description: 'Picture URL from LINE profile',
     required: false,
     example: 'https://profile.line-scdn.net/...',
   })
   @IsOptional()
   @IsString()
-  profileImageUrl?: string;
+  pictureUrl?: string;
 }

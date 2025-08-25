@@ -2,11 +2,10 @@ import { Module } from '@nestjs/common';
 import { ConfigModule, ConfigService } from '@nestjs/config';
 import { TypeOrmModule } from '@nestjs/typeorm';
 import { ThrottlerModule } from '@nestjs/throttler';
-import { JwtModule } from '@nestjs/jwt';
-import { PassportModule } from '@nestjs/passport';
 import { ScheduleModule } from '@nestjs/schedule';
 import { APP_FILTER, APP_GUARD, APP_INTERCEPTOR } from '@nestjs/core';
 import { ThrottlerGuard } from '@nestjs/throttler';
+import { SimpleAuthGuard } from './auth/guards/simple-auth.guard';
 
 import { AppController } from './app.controller';
 import { AppService } from './app.service';
@@ -99,22 +98,6 @@ import { FriendsModule } from './friends/friends.module';
       ],
     }),
 
-    // JWT configuration
-    JwtModule.registerAsync({
-      global: true,
-      imports: [ConfigModule],
-      inject: [ConfigService],
-      useFactory: (configService: ConfigService) => ({
-        secret: configService.get('jwt.secret'),
-        signOptions: {
-          expiresIn: configService.get('jwt.expirationTime'),
-        },
-      }),
-    }),
-
-    // Passport for authentication
-    PassportModule.register({ defaultStrategy: 'jwt' }),
-
     // Schedule module for cron jobs
     ScheduleModule.forRoot(),
 
@@ -142,6 +125,10 @@ import { FriendsModule } from './friends/friends.module';
     {
       provide: APP_GUARD,
       useClass: ThrottlerGuard,
+    },
+    {
+      provide: APP_GUARD,
+      useClass: SimpleAuthGuard,
     },
   ],
 })
