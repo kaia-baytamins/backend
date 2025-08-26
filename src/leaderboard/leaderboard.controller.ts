@@ -159,6 +159,91 @@ export class LeaderboardController {
   }
 
   @Public()
+  @Get('rankings')
+  @ApiOperation({
+    summary: 'Get leaderboard rankings (alternative endpoint)',
+    description: 'Retrieve leaderboard rankings by type and period - alternative endpoint matching frontend expectations',
+  })
+  @ApiQuery({
+    name: 'type',
+    enum: LeaderboardType,
+    description: 'Leaderboard type',
+    required: false,
+  })
+  @ApiQuery({
+    name: 'period',
+    enum: LeaderboardPeriod,
+    description: 'Time period',
+    required: false,
+  })
+  @ApiQuery({
+    name: 'limit',
+    type: Number,
+    description: 'Number of results to return',
+    required: false,
+  })
+  @ApiResponse({
+    status: 200,
+    description: 'Rankings retrieved successfully',
+    schema: {
+      type: 'object',
+      properties: {
+        totalExplorations: {
+          type: 'array',
+          items: {
+            properties: {
+              rank: { type: 'number', example: 1 },
+              username: { type: 'string', example: 'SpaceExplorer' },
+              score: { type: 'number', example: 150 },
+            },
+          },
+        },
+        successfulExplorations: {
+          type: 'array',
+          items: {
+            properties: {
+              rank: { type: 'number', example: 1 },
+              username: { type: 'string', example: 'SpaceExplorer' },
+              score: { type: 'number', example: 100 },
+            },
+          },
+        },
+      },
+    },
+  })
+  async getRankings(
+    @Query('type') type?: LeaderboardType,
+    @Query('period') period: LeaderboardPeriod = LeaderboardPeriod.ALL_TIME,
+    @Query('limit', new DefaultValuePipe(100), ParseIntPipe) limit: number = 100,
+  ) {
+    // Frontend expects specific format with totalExplorations and successfulExplorations
+    const totalExplorations = await this.leaderboardService.getLeaderboard(
+      LeaderboardType.TOTAL_EXPLORATIONS,
+      period,
+      limit,
+    );
+    
+    const successfulExplorations = await this.leaderboardService.getLeaderboard(
+      LeaderboardType.SUCCESSFUL_EXPLORATIONS,
+      period,
+      limit,
+    );
+
+    // Transform to match frontend expectations
+    const transformLeaderboard = (entries: any[]) => 
+      entries.map(entry => ({
+        rank: entry.rank,
+        username: entry.user?.username || entry.user?.walletAddress || 'Unknown',
+        score: entry.score,
+      }));
+
+    return {
+      totalExplorations: transformLeaderboard(totalExplorations),
+      successfulExplorations: transformLeaderboard(successfulExplorations),
+    };
+  }
+
+  @Public()
   @Get('top-performers')
   @ApiOperation({
     summary: 'Get top performers summary',
