@@ -15,3 +15,4 @@ export {
   LeaderboardType,
   LeaderboardPeriod,
 } from './leaderboard.entity';
+export { UserInventory } from './user-inventory.entity';
