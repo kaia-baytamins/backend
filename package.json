@@ -25,7 +25,8 @@
     "view-quests": "ts-node src/scripts/view-quests.ts",
     "clear-quests": "ts-node src/scripts/clear-quests.ts",
     "seed-quests": "ts-node src/scripts/seed-quests.ts",
-    "seed-users": "ts-node src/scripts/run-seed.ts"
+    "seed-users": "ts-node src/scripts/run-seed.ts",
+    "check-inventory": "ts-node src/scripts/check-user-inventory.ts"
   },
   "dependencies": {
     "@nestjs/common": "^10.0.0",
