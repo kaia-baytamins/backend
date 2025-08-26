@@ -76,6 +76,14 @@ export class AuthController {
     description: 'User already has a pet or user not found',
   })
   async selectPet(@Body() selectPetDto: SelectPetDto) {
-    return await this.authService.selectPet(selectPetDto.lineUserId, selectPetDto.petType);
+    try {
+      return await this.authService.selectPet(
+        selectPetDto.lineUserId,
+        selectPetDto.petType,
+      );
+    } catch (error) {
+      console.error('Pet selection error:', error);
+      throw error;
+    }
   }
 }
