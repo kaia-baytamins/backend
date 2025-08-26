@@ -59,7 +59,7 @@
 - **Fee delegation statistics** tracking
 
 ### 🔗 **Blockchain Integration**
-- **Full KAIA network support** with ethers.js and web3
+- **Full KAIA network support** with ethers.js
 - **Smart contract interaction** services
 - **Event listening** for staking and NFT transfers
 - **Balance checking** and transaction monitoring

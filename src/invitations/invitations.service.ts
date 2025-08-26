@@ -118,6 +118,7 @@ export class InvitationsService {
   private async createNewLineUser(
     lineUserId: string,
     displayName?: string,
+    // eslint-disable-next-line @typescript-eslint/no-unused-vars
     _profileImageUrl?: string,
   ): Promise<User> {
     const user = this.userRepository.create({

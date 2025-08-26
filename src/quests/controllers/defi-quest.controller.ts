@@ -213,6 +213,66 @@ export class DefiQuestController {
   }
 
   /**
+   * Check if approval is needed for staking
+   */
+  @Post('check-staking-approval')
+  @HttpCode(HttpStatus.OK)
+  async checkStakingApproval(
+    @CurrentUser() user: User,
+    @Body() { amount }: { amount: string },
+  ) {
+    try {
+      const result = await this.defiService.checkStakingApprovalNeeded(
+        user.walletAddress,
+        amount,
+      );
+
+      return {
+        success: true,
+        ...result,
+      };
+    } catch (error) {
+      return {
+        success: false,
+        error: error.message,
+        needsApproval: true,
+        currentAllowance: '0',
+        requiredAmount: amount,
+      };
+    }
+  }
+
+  /**
+   * Check if approval is needed for lending supply
+   */
+  @Post('check-lending-approval')
+  @HttpCode(HttpStatus.OK)
+  async checkLendingApproval(
+    @CurrentUser() user: User,
+    @Body() { amount }: { amount: string },
+  ) {
+    try {
+      const result = await this.defiService.checkLendingApprovalNeeded(
+        user.walletAddress,
+        amount,
+      );
+
+      return {
+        success: true,
+        ...result,
+      };
+    } catch (error) {
+      return {
+        success: false,
+        error: error.message,
+        needsApproval: true,
+        currentAllowance: '0',
+        requiredAmount: amount,
+      };
+    }
+  }
+
+  /**
    * Prepare faucet transaction for user signing
    */
   @Post('prepare-faucet')

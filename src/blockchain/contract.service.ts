@@ -9,6 +9,7 @@ import {
   LENDING_PROTOCOL_ABI,
   SIMPLE_AMM_ABI,
   USDT_FAUCET_ABI,
+  MULTICALL3_ABI,
 } from './abis';
 
 const ERC721_ABI = [
@@ -32,6 +33,7 @@ export class ContractService implements OnModuleInit {
   private faucetContract?: ethers.Contract;
   private nftContract?: ethers.Contract;
   private marketplaceContract?: ethers.Contract;
+  private multicall3Contract?: ethers.Contract;
 
   constructor(
     private readonly blockchainService: BlockchainService,
@@ -59,6 +61,9 @@ export class ContractService implements OnModuleInit {
       const marketplaceAddress = this.configService.get<string>(
         'contracts.marketplace',
       );
+      const multicall3Address =
+        this.configService.get<string>('contracts.multicall3') ||
+        '0x6C75785a346d18b2edB309a4205d6125c63FE551'; // Default deployed address
 
       // Initialize USDT contract
       if (usdtAddress) {
@@ -118,6 +123,17 @@ export class ContractService implements OnModuleInit {
       if (marketplaceAddress) {
         this.logger.log(
           `Marketplace contract address configured: ${marketplaceAddress}`,
+        );
+      }
+
+      // Initialize Multicall3 contract
+      if (multicall3Address) {
+        this.multicall3Contract = this.blockchainService.getContract(
+          multicall3Address,
+          MULTICALL3_ABI,
+        );
+        this.logger.log(
+          `Multicall3 contract initialized at ${multicall3Address}`,
         );
       }
     } catch (error) {
@@ -183,6 +199,16 @@ export class ContractService implements OnModuleInit {
       throw new Error('NFT contract not initialized');
     }
     return this.nftContract;
+  }
+
+  /**
+   * Get Multicall3 contract instance
+   */
+  getMulticall3Contract(): ethers.Contract {
+    if (!this.multicall3Contract) {
+      throw new Error('Multicall3 contract not initialized');
+    }
+    return this.multicall3Contract;
   }
 
   /**
