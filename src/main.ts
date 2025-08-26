@@ -5,7 +5,6 @@ import { DocumentBuilder, SwaggerModule } from '@nestjs/swagger';
 import * as cors from 'cors';
 
 import { AppModule } from './app.module';
-import { SimpleAuthGuard } from './auth/guards/simple-auth.guard';
 
 async function bootstrap() {
   const app = await NestFactory.create(AppModule);

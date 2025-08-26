@@ -106,6 +106,46 @@ export class UsersController {
     return await this.usersService.updateProfile(user.id, updateData);
   }
 
+  @Put('wallet-address')
+  @ApiOperation({
+    summary: 'Update user wallet address',
+    description: "Update the authenticated user's wallet address",
+  })
+  @ApiResponse({
+    status: 200,
+    description: 'Wallet address updated successfully',
+    schema: {
+      properties: {
+        success: { type: 'boolean', example: true },
+        message: {
+          type: 'string',
+          example: 'Wallet address updated successfully',
+        },
+        walletAddress: {
+          type: 'string',
+          example: '0x742C4f7C8e4C4e6f7A4a4a4a4a4a4a4a4a4a4a4a',
+        },
+      },
+    },
+  })
+  @ApiResponse({ status: 400, description: 'Invalid wallet address format' })
+  @ApiResponse({ status: 401, description: 'Unauthorized' })
+  @ApiResponse({ status: 404, description: 'User not found' })
+  async updateWalletAddress(
+    @CurrentUser() user: User,
+    @Body() updateData: { walletAddress: string },
+  ) {
+    const result = await this.usersService.updateWalletAddress(
+      user.id,
+      updateData.walletAddress,
+    );
+    return {
+      success: true,
+      message: 'Wallet address updated successfully',
+      walletAddress: result.walletAddress,
+    };
+  }
+
   @Get('stats')
   @ApiOperation({
     summary: 'Get user statistics',

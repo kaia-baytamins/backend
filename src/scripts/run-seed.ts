@@ -49,10 +49,9 @@ async function main() {
   try {
     console.log('🔌 Connecting to database...');
     await AppDataSource.initialize();
-    
+
     console.log('✅ Database connected!');
     await seedDummyUsers(AppDataSource);
-    
   } catch (error) {
     console.error('❌ Error seeding data:', error);
   } finally {

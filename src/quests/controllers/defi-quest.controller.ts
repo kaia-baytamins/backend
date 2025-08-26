@@ -30,12 +30,20 @@ export class DefiQuestController {
    */
   @Get('portfolio')
   async getUserDefiPortfolio(@CurrentUser() user: User) {
-    const portfolio = await this.defiService.getUserPortfolio(
+    const portfolioData = await this.defiService.getUserPortfolio(
       user.walletAddress,
     );
     const participation = await this.questsService.getUserDefiParticipation(
       user.id,
     );
+
+    // Transform the portfolio data to match frontend expectations
+    const portfolio = {
+      totalValue: portfolioData.totalValue,
+      stakingValue: portfolioData.staking.amount,
+      lendingValue: portfolioData.lending.supplied,
+      lpValue: portfolioData.amm.liquidityProvided,
+    };
 
     return {
       portfolio,

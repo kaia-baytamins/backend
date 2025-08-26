@@ -1,11 +1,5 @@
 import { DataSource } from 'typeorm';
-import {
-  User,
-  Pet,
-  Spaceship,
-  PetType,
-  SpaceshipType,
-} from '../entities';
+import { User, Pet, Spaceship, PetType, SpaceshipType } from '../entities';
 import { UserStats } from '../entities/user-stats.entity';
 
 const dummyUsers = [
@@ -119,7 +113,7 @@ export async function seedDummyUsers(dataSource: DataSource) {
       successfulExplorations: userData.successfulExplorations,
       lastLoginAt: new Date(),
     });
-    
+
     const savedUser = await userRepository.save(user);
 
     // Create pet
@@ -127,10 +121,10 @@ export async function seedDummyUsers(dataSource: DataSource) {
       name: petNames[userData.petType],
       type: userData.petType,
       level: Math.floor(userData.level / 2) + 1,
-      health: 100 + (userData.level * 10),
-      maxHealth: 100 + (userData.level * 10),
-      agility: 50 + (userData.level * 5),
-      intelligence: 50 + (userData.level * 5),
+      health: 100 + userData.level * 10,
+      maxHealth: 100 + userData.level * 10,
+      agility: 50 + userData.level * 5,
+      intelligence: 50 + userData.level * 5,
       experience: userData.experience / 2,
       ownerId: savedUser.id,
     });
@@ -140,9 +134,9 @@ export async function seedDummyUsers(dataSource: DataSource) {
       name: `Explorer ${userData.level}`,
       type: SpaceshipType.BASIC,
       level: userData.level,
-      engine: 100 + (userData.level * 15),
-      fuel: 100 + (userData.level * 10),
-      reinforcement: 50 + (userData.level * 8),
+      engine: 100 + userData.level * 15,
+      fuel: 100 + userData.level * 10,
+      reinforcement: 50 + userData.level * 8,
       ownerId: savedUser.id,
     });
 
@@ -157,7 +151,9 @@ export async function seedDummyUsers(dataSource: DataSource) {
       userStatsRepository.save(stats),
     ]);
 
-    console.log(`✅ Created user: ${userData.username} (Level ${userData.level})`);
+    console.log(
+      `✅ Created user: ${userData.username} (Level ${userData.level})`,
+    );
   }
 
   console.log('🎉 Dummy users seeded successfully!');

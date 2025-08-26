@@ -83,6 +83,33 @@ export class UsersService {
   }
 
   /**
+   * Update user wallet address
+   */
+  async updateWalletAddress(
+    userId: string,
+    walletAddress: string,
+  ): Promise<User> {
+    const user = await this.userRepository.findOne({
+      where: { id: userId },
+    });
+
+    if (!user) {
+      throw new NotFoundException('User not found');
+    }
+
+    // Basic wallet address validation (Ethereum format)
+    const walletRegex = /^0x[a-fA-F0-9]{40}$/;
+    if (!walletRegex.test(walletAddress)) {
+      throw new BadRequestException('Invalid wallet address format');
+    }
+
+    user.walletAddress = walletAddress;
+    user.lastLoginAt = new Date();
+
+    return await this.userRepository.save(user);
+  }
+
+  /**
    * Initialize user's pet and spaceship
    */
   async initializeUserAssets(

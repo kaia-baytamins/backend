@@ -31,21 +31,20 @@ async function updateUsernames() {
   try {
     console.log('🔌 Connecting to database...');
     await AppDataSource.initialize();
-    
+
     const userRepository = AppDataSource.getRepository(User);
-    
+
     console.log('📝 Updating usernames...');
-    
+
     for (const update of usernameUpdates) {
       await userRepository.update(
         { lineUserId: update.lineUserId },
-        { username: update.newUsername }
+        { username: update.newUsername },
       );
       console.log(`✅ Updated: ${update.lineUserId} → ${update.newUsername}`);
     }
-    
+
     console.log('🎉 All usernames updated successfully!');
-    
   } catch (error) {
     console.error('❌ Error updating usernames:', error);
   } finally {
