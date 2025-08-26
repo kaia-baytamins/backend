@@ -1,4 +1,4 @@
-import { Controller, Get, Put, Body } from '@nestjs/common';
+import { Controller, Get, Put, Body, Param } from '@nestjs/common';
 import {
   ApiTags,
   ApiOperation,
@@ -68,6 +68,20 @@ export class UsersController {
   @ApiResponse({ status: 404, description: 'User not found' })
   async getProfile(@CurrentUser() user: User) {
     return await this.usersService.getUserProfile(user.id);
+  }
+
+  @Get('profile/line-id/:lineUserId')
+  @ApiOperation({
+    summary: 'Get user profile by Line ID',
+    description: "Retrieve the user's profile using their Line ID",
+  })
+  @ApiResponse({
+    status: 200,
+    description: 'User profile retrieved successfully',
+  })
+  @ApiResponse({ status: 404, description: 'User not found' })
+  async getProfileByLineId(@Param('lineUserId') lineUserId: string) {
+    return await this.usersService.getUserProfileByLineId(lineUserId);
   }
 
   @Put('profile')

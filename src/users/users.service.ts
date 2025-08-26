@@ -37,6 +37,22 @@ export class UsersService {
   }
 
   /**
+   * Get user profile with all related data using lineUserId
+   */
+  async getUserProfileByLineId(lineUserId: string): Promise<User> {
+    const user = await this.userRepository.findOne({
+      where: { lineUserId, isActive: true },
+      relations: ['pet', 'spaceship', 'spaceship.items'],
+    });
+
+    if (!user) {
+      throw new NotFoundException('User not found');
+    }
+
+    return user;
+  }
+
+  /**
    * Update user profile
    */
   async updateProfile(
