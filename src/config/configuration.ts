@@ -29,7 +29,7 @@ export default () => ({
       '0xd24c75020e9fe0763473d4d313aa16955da84468',
     amm:
       process.env.AMM_CONTRACT_ADDRESS ||
-      '0x5d2cab3a1263a28764d001180f300eaeecdfb344',
+      '0x8cc13474301FE5AA08c920dB228A3BB1E68F5b13',
     faucet:
       process.env.FAUCET_CONTRACT_ADDRESS ||
       '0x4e2ebac253d77900cc50dd093f17150ba4437fae',
