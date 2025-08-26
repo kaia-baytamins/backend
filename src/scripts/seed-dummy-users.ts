@@ -6,6 +6,7 @@ const dummyUsers = [
   {
     lineUserId: 'U1111111111111111111111111111111',
     username: '김민수',
+    walletAddress: '0x1234567890123456789012345678901234567890',
     level: 5,
     experience: 1250,
     totalExplorations: 25,
@@ -15,6 +16,7 @@ const dummyUsers = [
   {
     lineUserId: 'U2222222222222222222222222222222',
     username: '田中さくら',
+    walletAddress: '0x2345678901234567890123456789012345678901',
     level: 8,
     experience: 3200,
     totalExplorations: 50,
@@ -24,6 +26,7 @@ const dummyUsers = [
   {
     lineUserId: 'U3333333333333333333333333333333',
     username: '이준호',
+    walletAddress: '0x3456789012345678901234567890123456789012',
     level: 3,
     experience: 750,
     totalExplorations: 15,
@@ -33,6 +36,7 @@ const dummyUsers = [
   {
     lineUserId: 'U4444444444444444444444444444444',
     username: '山田ひかり',
+    walletAddress: '0x4567890123456789012345678901234567890123',
     level: 10,
     experience: 5000,
     totalExplorations: 100,
@@ -42,6 +46,7 @@ const dummyUsers = [
   {
     lineUserId: 'U5555555555555555555555555555555',
     username: '박소영',
+    walletAddress: '0x5678901234567890123456789012345678901234',
     level: 6,
     experience: 1800,
     totalExplorations: 35,
@@ -51,6 +56,7 @@ const dummyUsers = [
   {
     lineUserId: 'U6666666666666666666666666666666',
     username: '佐藤ゆうき',
+    walletAddress: '0x6789012345678901234567890123456789012345',
     level: 4,
     experience: 1000,
     totalExplorations: 20,
@@ -60,6 +66,7 @@ const dummyUsers = [
   {
     lineUserId: 'U7777777777777777777777777777777',
     username: '최현우',
+    walletAddress: '0x7890123456789012345678901234567890123456',
     level: 7,
     experience: 2400,
     totalExplorations: 40,
@@ -69,6 +76,7 @@ const dummyUsers = [
   {
     lineUserId: 'U8888888888888888888888888888888',
     username: '鈴木まり',
+    walletAddress: '0x8901234567890123456789012345678901234567',
     level: 2,
     experience: 400,
     totalExplorations: 8,
@@ -107,6 +115,7 @@ export async function seedDummyUsers(dataSource: DataSource) {
     const user = userRepository.create({
       lineUserId: userData.lineUserId,
       username: userData.username,
+      walletAddress: userData.walletAddress,
       level: userData.level,
       experience: userData.experience,
       totalExplorations: userData.totalExplorations,
