@@ -1,6 +1,7 @@
 import * as dotenv from 'dotenv';
 import { DataSource } from 'typeorm';
 import { seedDummyUsers } from './seed-dummy-users';
+import { seedInventory } from './seed-inventory';
 import {
   User,
   Pet,
@@ -16,6 +17,7 @@ import {
 import { Friendship } from '../entities/friendship.entity';
 import { UserStats } from '../entities/user-stats.entity';
 import { Invitation } from '../entities/invitation.entity';
+import { UserInventory } from '../entities/user-inventory.entity';
 
 dotenv.config();
 
@@ -40,6 +42,7 @@ const AppDataSource = new DataSource({
     Friendship,
     UserStats,
     Invitation,
+    UserInventory,
   ],
   synchronize: false,
   logging: false,
@@ -52,6 +55,7 @@ async function main() {
 
     console.log('✅ Database connected!');
     await seedDummyUsers(AppDataSource);
+    await seedInventory(AppDataSource);
   } catch (error) {
     console.error('❌ Error seeding data:', error);
   } finally {

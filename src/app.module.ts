@@ -39,8 +39,10 @@ import {
 import { Friendship } from './entities/friendship.entity';
 import { UserStats } from './entities/user-stats.entity';
 import { Invitation } from './entities/invitation.entity';
+import { UserInventory } from './entities/user-inventory.entity';
 import { InvitationsModule } from './invitations/invitations.module';
 import { FriendsModule } from './friends/friends.module';
+import { InventoryModule } from './inventory/inventory.module';
 
 @Module({
   imports: [
@@ -80,6 +82,7 @@ import { FriendsModule } from './friends/friends.module';
           Friendship,
           UserStats,
           Invitation,
+          UserInventory,
         ],
         synchronize: configService.get('nodeEnv') !== 'production',
         logging: configService.get('nodeEnv') === 'development',
@@ -110,6 +113,7 @@ import { FriendsModule } from './friends/friends.module';
     BlockchainModule,
     InvitationsModule,
     FriendsModule,
+    InventoryModule,
   ],
   controllers: [AppController],
   providers: [

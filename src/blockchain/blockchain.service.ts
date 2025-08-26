@@ -1,13 +1,11 @@
 import { Injectable, Logger } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { ethers } from 'ethers';
-import Web3 from 'web3';
 
 @Injectable()
 export class BlockchainService {
   private readonly logger = new Logger(BlockchainService.name);
   private readonly provider: ethers.JsonRpcProvider;
-  private readonly web3: Web3;
   private readonly wallet?: ethers.Wallet;
 
   constructor(private readonly configService: ConfigService) {
@@ -15,7 +13,6 @@ export class BlockchainService {
     const privateKey = this.configService.get<string>('kaia.privateKey');
 
     this.provider = new ethers.JsonRpcProvider(rpcUrl);
-    this.web3 = new Web3(rpcUrl);
 
     if (privateKey) {
       this.wallet = new ethers.Wallet(privateKey, this.provider);

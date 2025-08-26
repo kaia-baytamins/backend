@@ -61,6 +61,17 @@ export interface DefiTransactionData {
   type: 'contract_execution';
 }
 
+export interface Call3 {
+  target: string;
+  allowFailure: boolean;
+  callData: string;
+}
+
+export interface MulticallResult {
+  success: boolean;
+  returnData: string;
+}
+
 @Injectable()
 export class DefiService {
   private readonly logger = new Logger(DefiService.name);
@@ -260,9 +271,46 @@ export class DefiService {
   ): Promise<DefiTransactionData> {
     try {
       const stakingContract = this.contractService.getStakingContract();
+      const usdtContract = this.contractService.getUsdtContract();
       const amountWei = this.blockchainService.parseKaia(amount);
 
-      // Create transaction data for staking
+      // Check current allowance
+      const stakingAddress = await stakingContract.getAddress();
+      const currentAllowance = await usdtContract.allowance(
+        userAddress,
+        stakingAddress,
+      );
+
+      // If allowance is insufficient, return approval transaction
+      if (currentAllowance < amountWei) {
+        const usdtContractInterface = usdtContract.interface;
+        const approvalData = usdtContractInterface.encodeFunctionData(
+          'approve',
+          [stakingAddress, amountWei],
+        );
+
+        const gasPrice = await this.blockchainService.getGasPrice();
+        const gasEstimate = await usdtContract.approve.estimateGas(
+          stakingAddress,
+          amountWei,
+          { from: userAddress },
+        );
+
+        this.logger.log(
+          `Prepared USDT approval transaction for ${userAddress}: ${amount} tokens for staking`,
+        );
+
+        return {
+          to: await usdtContract.getAddress(),
+          data: approvalData,
+          gas: ((gasEstimate * 110n) / 100n).toString(), // Add 10% buffer
+          gasPrice: gasPrice.toString(),
+          value: '0',
+          type: 'contract_execution',
+        };
+      }
+
+      // If allowance is sufficient, return staking transaction
       const stakingContractInterface = stakingContract.interface;
       const data = stakingContractInterface.encodeFunctionData('stake', [
         amountWei,
@@ -323,9 +371,46 @@ export class DefiService {
   ): Promise<DefiTransactionData> {
     try {
       const lendingContract = this.contractService.getLendingContract();
+      const usdtContract = this.contractService.getUsdtContract();
       const amountWei = this.blockchainService.parseKaia(amount);
 
-      // Create transaction data for lending supply
+      // Check current allowance
+      const lendingAddress = await lendingContract.getAddress();
+      const currentAllowance = await usdtContract.allowance(
+        userAddress,
+        lendingAddress,
+      );
+
+      // If allowance is insufficient, return approval transaction
+      if (currentAllowance < amountWei) {
+        const usdtContractInterface = usdtContract.interface;
+        const approvalData = usdtContractInterface.encodeFunctionData(
+          'approve',
+          [lendingAddress, amountWei],
+        );
+
+        const gasPrice = await this.blockchainService.getGasPrice();
+        const gasEstimate = await usdtContract.approve.estimateGas(
+          lendingAddress,
+          amountWei,
+          { from: userAddress },
+        );
+
+        this.logger.log(
+          `Prepared USDT approval transaction for ${userAddress}: ${amount} tokens for lending supply`,
+        );
+
+        return {
+          to: await usdtContract.getAddress(),
+          data: approvalData,
+          gas: ((gasEstimate * 110n) / 100n).toString(), // Add 10% buffer
+          gasPrice: gasPrice.toString(),
+          value: '0',
+          type: 'contract_execution',
+        };
+      }
+
+      // If allowance is sufficient, return supply transaction
       const lendingContractInterface = lendingContract.interface;
       const data = lendingContractInterface.encodeFunctionData('supply', [
         amountWei,
@@ -538,6 +623,107 @@ export class DefiService {
   }
 
   /**
+   * Get USDT allowance for a specific spender
+   */
+  async getUsdtAllowance(
+    userAddress: string,
+    spenderAddress: string,
+  ): Promise<string> {
+    try {
+      const usdtContract = this.contractService.getUsdtContract();
+      const allowance = await usdtContract.allowance(
+        userAddress,
+        spenderAddress,
+      );
+      return this.blockchainService.formatKaia(allowance);
+    } catch (error) {
+      this.logger.error(
+        `Error getting USDT allowance for ${userAddress} -> ${spenderAddress}:`,
+        error,
+      );
+      return '0';
+    }
+  }
+
+  /**
+   * Check if user needs to approve USDT for staking
+   */
+  async checkStakingApprovalNeeded(
+    userAddress: string,
+    amount: string,
+  ): Promise<{
+    needsApproval: boolean;
+    currentAllowance: string;
+    requiredAmount: string;
+  }> {
+    try {
+      const stakingContract = this.contractService.getStakingContract();
+      const stakingAddress = await stakingContract.getAddress();
+      const currentAllowance = await this.getUsdtAllowance(
+        userAddress,
+        stakingAddress,
+      );
+      const amountWei = this.blockchainService.parseKaia(amount);
+      const allowanceWei = this.blockchainService.parseKaia(currentAllowance);
+
+      return {
+        needsApproval: allowanceWei < amountWei,
+        currentAllowance,
+        requiredAmount: amount,
+      };
+    } catch (error) {
+      this.logger.error(
+        `Error checking staking approval for ${userAddress}:`,
+        error,
+      );
+      return {
+        needsApproval: true,
+        currentAllowance: '0',
+        requiredAmount: amount,
+      };
+    }
+  }
+
+  /**
+   * Check if user needs to approve USDT for lending supply
+   */
+  async checkLendingApprovalNeeded(
+    userAddress: string,
+    amount: string,
+  ): Promise<{
+    needsApproval: boolean;
+    currentAllowance: string;
+    requiredAmount: string;
+  }> {
+    try {
+      const lendingContract = this.contractService.getLendingContract();
+      const lendingAddress = await lendingContract.getAddress();
+      const currentAllowance = await this.getUsdtAllowance(
+        userAddress,
+        lendingAddress,
+      );
+      const amountWei = this.blockchainService.parseKaia(amount);
+      const allowanceWei = this.blockchainService.parseKaia(currentAllowance);
+
+      return {
+        needsApproval: allowanceWei < amountWei,
+        currentAllowance,
+        requiredAmount: amount,
+      };
+    } catch (error) {
+      this.logger.error(
+        `Error checking lending approval for ${userAddress}:`,
+        error,
+      );
+      return {
+        needsApproval: true,
+        currentAllowance: '0',
+        requiredAmount: amount,
+      };
+    }
+  }
+
+  /**
    * Calculate total portfolio value in USD
    */
   private calculateTotalPortfolioValue(
@@ -557,6 +743,34 @@ export class DefiService {
     } catch (error) {
       this.logger.error('Error calculating total portfolio value:', error);
       return '0';
+    }
+  }
+
+  /**
+   * Execute a multicall transaction and parse results
+   */
+  async executeMulticall(
+    calls: Call3[],
+    userAddress: string,
+  ): Promise<MulticallResult[]> {
+    try {
+      const multicall3Contract = this.contractService.getMulticall3Contract();
+
+      const results = await multicall3Contract.aggregate3(calls, {
+        from: userAddress,
+      });
+
+      this.logger.log(
+        `Executed multicall for ${userAddress} with ${calls.length} calls`,
+      );
+
+      return results.map((result: any) => ({
+        success: result.success,
+        returnData: result.returnData,
+      }));
+    } catch (error) {
+      this.logger.error(`Error executing multicall for ${userAddress}:`, error);
+      throw error;
     }
   }
 }
