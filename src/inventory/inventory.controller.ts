@@ -2,7 +2,7 @@ import { Controller, Get, Post, Body, Param } from '@nestjs/common';
 import { ApiTags, ApiOperation, ApiResponse } from '@nestjs/swagger';
 import { InventoryService } from './inventory.service';
 import { Public } from '../auth/decorators/public.decorator';
-import { EquipItemDto, UnequipItemDto } from './dto/equip.dto';
+import { EquipItemDto, UnequipItemDto, SellItemDto } from './dto/equip.dto';
 
 @ApiTags('Inventory')
 @Controller('inventory')
@@ -244,5 +244,35 @@ export class InventoryController {
   @ApiResponse({ status: 404, description: 'User not found or spaceship not found' })
   async getEquippedItems(@Param('walletAddress') walletAddress: string) {
     return await this.inventoryService.getEquippedItems(walletAddress);
+  }
+
+  @Post('sell')
+  @ApiOperation({
+    summary: 'Sell an item from inventory',
+    description: 'Remove an item from inventory for selling (demo purpose)',
+  })
+  @ApiResponse({
+    status: 200,
+    description: 'Item sold successfully',
+    schema: {
+      type: 'object',
+      properties: {
+        success: { type: 'boolean', example: true },
+        message: { type: 'string', example: 'Item sold successfully' },
+        soldItem: {
+          type: 'object',
+          properties: {
+            itemId: { type: 'number', example: 1 },
+            name: { type: 'string', example: 'Engine #1' },
+            type: { type: 'string', example: 'engine' },
+            price: { type: 'number', example: 2.5 },
+          },
+        },
+      },
+    },
+  })
+  @ApiResponse({ status: 400, description: 'Item not found in inventory or insufficient quantity' })
+  async sellItem(@Body() sellDto: SellItemDto) {
+    return await this.inventoryService.sellItem(sellDto.walletAddress, sellDto.itemId, sellDto.price);
   }
 }

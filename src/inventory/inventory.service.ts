@@ -331,4 +331,43 @@ export class InventoryService {
     return rarityBoost[rarity];
   }
 
+  /**
+   * 아이템 판매 (인벤토리에서 제거)
+   */
+  async sellItem(walletAddress: string, itemId: number, price: number): Promise<any> {
+    // 1. 인벤토리에서 해당 아이템 확인 (미장착 상태여야 함)
+    const inventoryItem = await this.inventoryRepository.findOne({
+      where: { walletAddress, itemId, isEquipped: false },
+    });
+
+    if (!inventoryItem || inventoryItem.amount <= 0) {
+      throw new Error('Item not found in inventory or insufficient quantity');
+    }
+
+    // 2. 아이템 정보 가져오기
+    const itemType = this.getItemTypeFromId(itemId);
+    const itemName = this.getItemName(itemId, itemType);
+
+    // 3. 인벤토리에서 아이템 1개 제거
+    if (inventoryItem.amount > 1) {
+      // 수량이 1개 이상이면 수량만 감소
+      inventoryItem.amount -= 1;
+      await this.inventoryRepository.save(inventoryItem);
+    } else {
+      // 수량이 1개면 완전히 제거
+      await this.inventoryRepository.remove(inventoryItem);
+    }
+
+    return {
+      success: true,
+      message: 'Item sold successfully',
+      soldItem: {
+        itemId,
+        name: itemName,
+        type: itemType,
+        price,
+      },
+    };
+  }
+
 }
