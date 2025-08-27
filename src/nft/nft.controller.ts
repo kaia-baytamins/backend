@@ -1,8 +1,4 @@
-import {
-  Controller,
-  Get,
-  Param,
-} from '@nestjs/common';
+import { Controller, Get, Param } from '@nestjs/common';
 import {
   ApiTags,
   ApiOperation,
@@ -24,7 +20,8 @@ export class NFTController {
   @ApiSecurity('LineUserID')
   @ApiOperation({
     summary: 'Get user NFT collection by planet',
-    description: 'Get Planet NFTs owned by the authenticated user, grouped by planet',
+    description:
+      'Get Planet NFTs owned by the authenticated user, grouped by planet',
   })
   @ApiResponse({
     status: 200,
@@ -34,10 +31,20 @@ export class NFTController {
       items: {
         properties: {
           planetName: { type: 'string', example: 'Moon' },
-          contractAddress: { type: 'string', example: '0x0Fd693Fa212F7B42705EcFEC577c8236d45bf1A7' },
-          planetImage: { type: 'string', example: 'https://cdn.example.com/moon.jpg' },
+          contractAddress: {
+            type: 'string',
+            example: '0x0Fd693Fa212F7B42705EcFEC577c8236d45bf1A7',
+          },
+          planetImage: {
+            type: 'string',
+            example: 'https://cdn.example.com/moon.jpg',
+          },
           nftCount: { type: 'number', example: 3 },
-          tokenIds: { type: 'array', items: { type: 'number' }, example: [1, 5, 8] },
+          tokenIds: {
+            type: 'array',
+            items: { type: 'number' },
+            example: [1, 5, 8],
+          },
         },
       },
     },
@@ -53,7 +60,8 @@ export class NFTController {
   @Get('collection/:walletAddress')
   @ApiOperation({
     summary: 'Get NFT collection by wallet address',
-    description: 'Get NFTs owned by a specific wallet address with contract addresses and counts',
+    description:
+      'Get NFTs owned by a specific wallet address with contract addresses and counts',
   })
   @ApiParam({
     name: 'walletAddress',
@@ -67,13 +75,18 @@ export class NFTController {
       type: 'array',
       items: {
         properties: {
-          contractAddress: { type: 'string', example: '0x0Fd693Fa212F7B42705EcFEC577c8236d45bf1A7' },
+          contractAddress: {
+            type: 'string',
+            example: '0x0Fd693Fa212F7B42705EcFEC577c8236d45bf1A7',
+          },
           count: { type: 'number', example: 3 },
         },
       },
     },
   })
-  async getNFTCollectionByWallet(@Param('walletAddress') walletAddress: string) {
+  async getNFTCollectionByWallet(
+    @Param('walletAddress') walletAddress: string,
+  ) {
     return await this.nftService.getUserNFTs(walletAddress);
   }
 
@@ -81,7 +94,8 @@ export class NFTController {
   @Get('collection-by-line/:lineUserId')
   @ApiOperation({
     summary: 'Get NFT collection by LINE user ID',
-    description: 'Get all Planet NFTs owned by a specific LINE user for card display',
+    description:
+      'Get all Planet NFTs owned by a specific LINE user for card display',
   })
   @ApiParam({
     name: 'lineUserId',
@@ -100,7 +114,8 @@ export class NFTController {
   @ApiSecurity('LineUserID')
   @ApiOperation({
     summary: 'Get user NFT collection statistics',
-    description: 'Get simple statistics about the authenticated user\'s NFT collection',
+    description:
+      "Get simple statistics about the authenticated user's NFT collection",
   })
   @ApiResponse({
     status: 200,
@@ -133,11 +148,26 @@ export class NFTController {
     description: 'Planet NFT contract addresses retrieved successfully',
     schema: {
       properties: {
-        Moon: { type: 'string', example: '0x0Fd693Fa212F7B42705EcFEC577c8236d45bf1A7' },
-        Mars: { type: 'string', example: '0xB399AD2828D4535c0B30F73afbc50Ac96Efe4977' },
-        Titan: { type: 'string', example: '0xb228cfCe3DCC0AF6b1B4b70790aD916301E6Bd1F' },
-        Europa: { type: 'string', example: '0x674ca2Ca5Cc7481ceaaead587E499398b5eDC8E1' },
-        Saturn: { type: 'string', example: '0x6C0D8F6B87dCFD9e1593a0307Bd22464c58f95F3' },
+        Moon: {
+          type: 'string',
+          example: '0x0Fd693Fa212F7B42705EcFEC577c8236d45bf1A7',
+        },
+        Mars: {
+          type: 'string',
+          example: '0xB399AD2828D4535c0B30F73afbc50Ac96Efe4977',
+        },
+        Titan: {
+          type: 'string',
+          example: '0xb228cfCe3DCC0AF6b1B4b70790aD916301E6Bd1F',
+        },
+        Europa: {
+          type: 'string',
+          example: '0x674ca2Ca5Cc7481ceaaead587E499398b5eDC8E1',
+        },
+        Saturn: {
+          type: 'string',
+          example: '0x6C0D8F6B87dCFD9e1593a0307Bd22464c58f95F3',
+        },
       },
     },
   })
@@ -162,13 +192,17 @@ export class NFTController {
     schema: {
       properties: {
         planetName: { type: 'string', example: 'Moon' },
-        contractAddress: { type: 'string', example: '0x0Fd693Fa212F7B42705EcFEC577c8236d45bf1A7' },
+        contractAddress: {
+          type: 'string',
+          example: '0x0Fd693Fa212F7B42705EcFEC577c8236d45bf1A7',
+        },
       },
     },
   })
   async getPlanetContractAddress(@Param('planetName') planetName: string) {
-    const contractAddress = await this.nftService.getPlanetContractAddress(planetName);
-    
+    const contractAddress =
+      await this.nftService.getPlanetContractAddress(planetName);
+
     if (!contractAddress) {
       return { error: 'Planet not found or no contract address available' };
     }
@@ -183,7 +217,8 @@ export class NFTController {
   @Get('global-stats')
   @ApiOperation({
     summary: 'Get global NFT statistics',
-    description: 'Get global statistics about planet NFTs (total minted, unique holders per planet)',
+    description:
+      'Get global statistics about planet NFTs (total minted, unique holders per planet)',
   })
   @ApiResponse({
     status: 200,
@@ -193,7 +228,10 @@ export class NFTController {
       items: {
         properties: {
           planetName: { type: 'string', example: 'Moon' },
-          contractAddress: { type: 'string', example: '0x0Fd693Fa212F7B42705EcFEC577c8236d45bf1A7' },
+          contractAddress: {
+            type: 'string',
+            example: '0x0Fd693Fa212F7B42705EcFEC577c8236d45bf1A7',
+          },
           totalMinted: { type: 'number', example: 150 },
           uniqueHolders: { type: 'number', example: 85 },
         },

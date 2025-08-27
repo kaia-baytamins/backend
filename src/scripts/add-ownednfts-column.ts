@@ -21,7 +21,7 @@ async function addOwnedNFTsColumn() {
     await AppDataSource.initialize();
 
     console.log('✅ Database connected!');
-    
+
     // Check if column exists first
     const columnExists = await AppDataSource.query(`
       SELECT COUNT(*) as count 
@@ -35,12 +35,13 @@ async function addOwnedNFTsColumn() {
 
     if (columnExists[0].count === 0) {
       console.log('Adding ownedNFTs column...');
-      await AppDataSource.query('ALTER TABLE users ADD COLUMN ownedNFTs json NULL');
+      await AppDataSource.query(
+        'ALTER TABLE users ADD COLUMN ownedNFTs json NULL',
+      );
       console.log('✅ ownedNFTs column added successfully!');
     } else {
       console.log('⚠️ ownedNFTs column already exists');
     }
-
   } catch (error) {
     console.error('❌ Error:', error);
   } finally {

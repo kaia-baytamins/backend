@@ -21,7 +21,7 @@ export class NFTService {
    */
   async getUserNFTs(walletAddress: string): Promise<any[]> {
     const user = await this.userRepository.findOne({
-      where: { walletAddress }
+      where: { walletAddress },
     });
 
     if (!user || !user.ownedNFTs) {
@@ -31,16 +31,16 @@ export class NFTService {
         return [
           {
             contractAddress: contractMapping['Moon'],
-            count: 3
+            count: 3,
           },
           {
-            contractAddress: contractMapping['Mars'], 
-            count: 2
+            contractAddress: contractMapping['Mars'],
+            count: 2,
           },
           {
             contractAddress: contractMapping['Titan'],
-            count: 1
-          }
+            count: 1,
+          },
         ];
       }
       return [];
@@ -55,7 +55,7 @@ export class NFTService {
       if (contractAddress && tokenIds.length > 0) {
         result.push({
           contractAddress,
-          count: tokenIds.length
+          count: tokenIds.length,
         });
       }
     }
@@ -68,11 +68,11 @@ export class NFTService {
    */
   async getPlanetContractMapping(): Promise<Record<string, string>> {
     return {
-      'Moon': '0x0Fd693Fa212F7B42705EcFEC577c8236d45bf1A7',
-      'Mars': '0xB399AD2828D4535c0B30F73afbc50Ac96Efe4977',
-      'Titan': '0xb228cfCe3DCC0AF6b1B4b70790aD916301E6Bd1F',
-      'Europa': '0x674ca2Ca5Cc7481ceaaead587E499398b5eDC8E1',
-      'Saturn': '0x6C0D8F6B87dCFD9e1593a0307Bd22464c58f95F3',
+      Moon: '0x0Fd693Fa212F7B42705EcFEC577c8236d45bf1A7',
+      Mars: '0xB399AD2828D4535c0B30F73afbc50Ac96Efe4977',
+      Titan: '0xb228cfCe3DCC0AF6b1B4b70790aD916301E6Bd1F',
+      Europa: '0x674ca2Ca5Cc7481ceaaead587E499398b5eDC8E1',
+      Saturn: '0x6C0D8F6B87dCFD9e1593a0307Bd22464c58f95F3',
     };
   }
 
@@ -89,7 +89,7 @@ export class NFTService {
    */
   async addNFTToUser(walletAddress: string, planetId: string): Promise<void> {
     const user = await this.userRepository.findOne({
-      where: { walletAddress }
+      where: { walletAddress },
     });
 
     if (!user) {
@@ -112,8 +112,10 @@ export class NFTService {
 
     // 데이터베이스에 저장
     await this.userRepository.save(user);
-    
-    this.logger.log(`Added NFT token #${newTokenId} for planet ${planetId} to wallet ${walletAddress}`);
+
+    this.logger.log(
+      `Added NFT token #${newTokenId} for planet ${planetId} to wallet ${walletAddress}`,
+    );
   }
 
   /**
@@ -121,7 +123,7 @@ export class NFTService {
    */
   async getUserPlanetNFTs(walletAddress: string): Promise<any[]> {
     const user = await this.userRepository.findOne({
-      where: { walletAddress }
+      where: { walletAddress },
     });
 
     if (!user || !user.ownedNFTs) {
@@ -139,7 +141,7 @@ export class NFTService {
           planetName: planetId,
           contractAddress,
           tokenIds,
-          count: tokenIds.length
+          count: tokenIds.length,
         });
       }
     }
@@ -152,7 +154,7 @@ export class NFTService {
    */
   async getUserPlanetNFTsByLineId(lineUserId: string): Promise<any[]> {
     const user = await this.userRepository.findOne({
-      where: { lineUserId }
+      where: { lineUserId },
     });
 
     if (!user || !user.ownedNFTs) {
@@ -170,7 +172,7 @@ export class NFTService {
           planetName: planetId,
           contractAddress,
           tokenIds,
-          count: tokenIds.length
+          count: tokenIds.length,
         });
       }
     }
@@ -183,7 +185,7 @@ export class NFTService {
    */
   async getUserNFTStats(walletAddress: string): Promise<any> {
     const user = await this.userRepository.findOne({
-      where: { walletAddress }
+      where: { walletAddress },
     });
 
     if (!user || !user.ownedNFTs) {
@@ -211,12 +213,14 @@ export class NFTService {
    */
   async getGlobalNFTStats(): Promise<any[]> {
     const contractMapping = await this.getPlanetContractMapping();
-    
-    return Object.entries(contractMapping).map(([planetName, contractAddress]) => ({
-      planetName,
-      contractAddress,
-      totalMinted: 0,
-      uniqueHolders: 0,
-    }));
+
+    return Object.entries(contractMapping).map(
+      ([planetName, contractAddress]) => ({
+        planetName,
+        contractAddress,
+        totalMinted: 0,
+        uniqueHolders: 0,
+      }),
+    );
   }
 }

@@ -26,15 +26,17 @@ async function restoreTestInventory() {
     synchronize: false,
     logging: false,
   });
-  
+
   try {
     await dataSource.initialize();
     console.log('✅ Database connected');
 
     const inventoryRepository = dataSource.getRepository(UserInventory);
-    
+
     console.log('🔄 Starting inventory restoration...');
-    console.log(`📦 Restoring items for wallet: ${TEST_WALLET_ADDRESS.slice(0, 10)}...`);
+    console.log(
+      `📦 Restoring items for wallet: ${TEST_WALLET_ADDRESS.slice(0, 10)}...`,
+    );
 
     for (const item of RESTORE_ITEMS) {
       // 이미 존재하는지 확인
@@ -50,7 +52,9 @@ async function restoreTestInventory() {
         // 이미 있으면 수량만 증가
         existingItem.amount += item.amount;
         await inventoryRepository.save(existingItem);
-        console.log(`  ✅ Updated Item ID ${item.itemId} (new amount: ${existingItem.amount})`);
+        console.log(
+          `  ✅ Updated Item ID ${item.itemId} (new amount: ${existingItem.amount})`,
+        );
       } else {
         // 없으면 새로 생성
         const newInventoryItem = inventoryRepository.create({
@@ -60,14 +64,13 @@ async function restoreTestInventory() {
           isEquipped: false,
           lastSyncedAt: new Date(),
         });
-        
+
         await inventoryRepository.save(newInventoryItem);
         console.log(`  ✅ Added Item ID ${item.itemId} x${item.amount}`);
       }
     }
 
     console.log('🎉 Test inventory restored successfully!');
-    
   } catch (error) {
     console.error('❌ Restoration failed:', error);
     throw error;
@@ -84,7 +87,7 @@ if (require.main === module) {
       console.log('🎉 Script completed successfully');
       process.exit(0);
     })
-    .catch(error => {
+    .catch((error) => {
       console.error('💥 Script failed:', error);
       process.exit(1);
     });

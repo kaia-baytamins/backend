@@ -4,16 +4,16 @@ import { AppDataSource } from '../../ormconfig';
 
 async function restoreSoldItem() {
   const dataSource = AppDataSource;
-  
+
   try {
     await dataSource.initialize();
     console.log('✅ Database connected');
 
     const inventoryRepository = dataSource.getRepository(UserInventory);
-    
+
     // 테스트용 지갑 주소
     const testWalletAddress = '0x1234567890123456789012345678901234567890';
-    
+
     // 기본 엔진 MK-2 (itemId = 1) 복구
     const newInventoryItem = inventoryRepository.create({
       walletAddress: testWalletAddress,
@@ -22,16 +22,15 @@ async function restoreSoldItem() {
       isEquipped: false,
       lastSyncedAt: new Date(),
     });
-    
+
     await inventoryRepository.save(newInventoryItem);
-    
+
     console.log('✅ 아이템 복구 완료:', {
       walletAddress: testWalletAddress,
       itemId: 1,
       itemName: '기본 엔진 MK-2',
-      amount: 1
+      amount: 1,
     });
-    
   } catch (error) {
     console.error('❌ 복구 실패:', error);
   } finally {
@@ -47,7 +46,7 @@ if (require.main === module) {
       console.log('🎉 스크립트 실행 완료');
       process.exit(0);
     })
-    .catch(error => {
+    .catch((error) => {
       console.error('💥 스크립트 실행 실패:', error);
       process.exit(1);
     });

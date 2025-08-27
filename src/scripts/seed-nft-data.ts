@@ -1,6 +1,17 @@
 import * as dotenv from 'dotenv';
 import { DataSource } from 'typeorm';
-import { User, Pet, Spaceship, SpaceshipItem, Planet, ExplorationRecord, Quest, UserQuest, MarketplaceItem, Leaderboard } from '../entities';
+import {
+  User,
+  Pet,
+  Spaceship,
+  SpaceshipItem,
+  Planet,
+  ExplorationRecord,
+  Quest,
+  UserQuest,
+  MarketplaceItem,
+  Leaderboard,
+} from '../entities';
 import { Friendship } from '../entities/friendship.entity';
 import { UserStats } from '../entities/user-stats.entity';
 import { Invitation } from '../entities/invitation.entity';
@@ -44,8 +55,9 @@ async function main() {
     const planetRepository = AppDataSource.getRepository(Planet);
 
     console.log('✅ Database connected!');
-    console.log('📊 Since database columns are not available, test the API directly with hardcoded data!');
-
+    console.log(
+      '📊 Since database columns are not available, test the API directly with hardcoded data!',
+    );
   } catch (error) {
     console.error('❌ Error seeding NFT data:', error);
   } finally {

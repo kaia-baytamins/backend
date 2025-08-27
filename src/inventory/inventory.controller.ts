@@ -37,7 +37,8 @@ export class InventoryController {
   })
   @ApiResponse({ status: 404, description: 'User not found' })
   async getInventoryByLineId(@Param('lineUserId') lineUserId: string) {
-    const inventory = await this.inventoryService.getUserInventoryByLineId(lineUserId);
+    const inventory =
+      await this.inventoryService.getUserInventoryByLineId(lineUserId);
     return { inventory };
   }
 
@@ -68,14 +69,16 @@ export class InventoryController {
   })
   @ApiResponse({ status: 404, description: 'User not found' })
   async getInventoryByWallet(@Param('walletAddress') walletAddress: string) {
-    const inventory = await this.inventoryService.getInventoryByWalletAddress(walletAddress);
+    const inventory =
+      await this.inventoryService.getInventoryByWalletAddress(walletAddress);
     return { inventory };
   }
 
   @Get('line-id/:lineUserId/type/:itemType')
   @ApiOperation({
     summary: 'Get inventory by item type',
-    description: 'Get user inventory filtered by item type (engine, material, special_equipment, fuel_tank)',
+    description:
+      'Get user inventory filtered by item type (engine, material, special_equipment, fuel_tank)',
   })
   @ApiResponse({
     status: 200,
@@ -102,7 +105,8 @@ export class InventoryController {
   @ApiResponse({ status: 404, description: 'User not found' })
   async getInventoryByTypeAndLineId(
     @Param('lineUserId') lineUserId: string,
-    @Param('itemType') itemType: 'engine' | 'material' | 'special_equipment' | 'fuel_tank',
+    @Param('itemType')
+    itemType: 'engine' | 'material' | 'special_equipment' | 'fuel_tank',
   ) {
     // LINE ID로 유저 찾기
     const user = await this.inventoryService['userRepository'].findOne({
@@ -114,14 +118,18 @@ export class InventoryController {
       throw new Error('User not found or wallet not connected');
     }
 
-    const inventory = await this.inventoryService.getWalletInventoryByType(user.walletAddress, itemType);
+    const inventory = await this.inventoryService.getWalletInventoryByType(
+      user.walletAddress,
+      itemType,
+    );
     return { inventory, itemType };
   }
 
   @Post('equip')
   @ApiOperation({
     summary: 'Equip an item',
-    description: 'Equip an item from inventory to spaceship using wallet address',
+    description:
+      'Equip an item from inventory to spaceship using wallet address',
   })
   @ApiResponse({
     status: 200,
@@ -144,9 +152,15 @@ export class InventoryController {
       },
     },
   })
-  @ApiResponse({ status: 400, description: 'Item not found in inventory or validation failed' })
+  @ApiResponse({
+    status: 400,
+    description: 'Item not found in inventory or validation failed',
+  })
   async equipItem(@Body() equipDto: EquipItemDto) {
-    return await this.inventoryService.equipItem(equipDto.walletAddress, equipDto.itemId);
+    return await this.inventoryService.equipItem(
+      equipDto.walletAddress,
+      equipDto.itemId,
+    );
   }
 
   @Post('unequip')
@@ -175,7 +189,10 @@ export class InventoryController {
   })
   @ApiResponse({ status: 400, description: 'Item not equipped or not found' })
   async unequipItem(@Body() unequipDto: UnequipItemDto) {
-    return await this.inventoryService.unequipItem(unequipDto.walletAddress, unequipDto.itemId);
+    return await this.inventoryService.unequipItem(
+      unequipDto.walletAddress,
+      unequipDto.itemId,
+    );
   }
 
   @Get('equipped/:walletAddress')
@@ -241,7 +258,10 @@ export class InventoryController {
       },
     },
   })
-  @ApiResponse({ status: 404, description: 'User not found or spaceship not found' })
+  @ApiResponse({
+    status: 404,
+    description: 'User not found or spaceship not found',
+  })
   async getEquippedItems(@Param('walletAddress') walletAddress: string) {
     return await this.inventoryService.getEquippedItems(walletAddress);
   }
@@ -271,8 +291,15 @@ export class InventoryController {
       },
     },
   })
-  @ApiResponse({ status: 400, description: 'Item not found in inventory or insufficient quantity' })
+  @ApiResponse({
+    status: 400,
+    description: 'Item not found in inventory or insufficient quantity',
+  })
   async sellItem(@Body() sellDto: SellItemDto) {
-    return await this.inventoryService.sellItem(sellDto.walletAddress, sellDto.itemId, sellDto.price);
+    return await this.inventoryService.sellItem(
+      sellDto.walletAddress,
+      sellDto.itemId,
+      sellDto.price,
+    );
   }
 }

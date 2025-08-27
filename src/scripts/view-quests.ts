@@ -5,26 +5,29 @@ dotenv.config();
 
 async function viewQuests() {
   let connection;
-  
+
   try {
     console.log('🔌 Connecting to database...');
-    
+
     connection = await createConnection({
       host: process.env.DB_HOST || 'localhost',
       port: parseInt(process.env.DB_PORT, 10) || 3306,
       user: process.env.DB_USERNAME || 'root',
       password: process.env.DB_PASSWORD || '',
-      database: process.env.DB_DATABASE || 'uchumon'
+      database: process.env.DB_DATABASE || 'uchumon',
     });
 
     console.log('✅ Database connected!');
 
     // Check if quests table exists
-    const [tableExists] = await connection.execute(`
+    const [tableExists] = await connection.execute(
+      `
       SELECT COUNT(*) as count 
       FROM information_schema.tables 
       WHERE table_schema = ? AND table_name = 'quests'
-    `, [process.env.DB_DATABASE || 'uchumon']);
+    `,
+      [process.env.DB_DATABASE || 'uchumon'],
+    );
 
     if ((tableExists as any[])[0].count === 0) {
       console.log('❌ Quests table does not exist');
@@ -38,8 +41,10 @@ async function viewQuests() {
 
     // Get all quests
     console.log('\n📊 All quests in database:');
-    const [quests] = await connection.execute('SELECT * FROM quests ORDER BY createdAt DESC');
-    
+    const [quests] = await connection.execute(
+      'SELECT * FROM quests ORDER BY createdAt DESC',
+    );
+
     if ((quests as any[]).length === 0) {
       console.log('ℹ️  No quests found in database');
     } else {
@@ -61,20 +66,24 @@ async function viewQuests() {
 
     // Get user quests if any
     console.log('\n👤 User quest progress:');
-    const [userQuests] = await connection.execute('SELECT * FROM user_quests ORDER BY createdAt DESC');
-    
+    const [userQuests] = await connection.execute(
+      'SELECT * FROM user_quests ORDER BY createdAt DESC',
+    );
+
     if ((userQuests as any[]).length === 0) {
       console.log('ℹ️  No user quest progress found');
     } else {
       console.log(`Found ${(userQuests as any[]).length} user quest records:`);
       (userQuests as any[]).forEach((uq, index) => {
-        console.log(`${index + 1}. User: ${uq.userId}, Quest: ${uq.questId}, Status: ${uq.status}, Progress: ${uq.progress}/${uq.targetAmount}`);
+        console.log(
+          `${index + 1}. User: ${uq.userId}, Quest: ${uq.questId}, Status: ${uq.status}, Progress: ${uq.progress}/${uq.targetAmount}`,
+        );
       });
     }
 
     // Check for problematic data
     console.log('\n🔍 Checking for data issues...');
-    
+
     try {
       const [typeCheck] = await connection.execute(`
         SELECT type, COUNT(*) as count 
@@ -98,10 +107,11 @@ async function viewQuests() {
     } catch (error) {
       console.log('❌ Error checking quest categories:', error.message);
     }
-
   } catch (error) {
     console.error('❌ Database connection error:', error.message);
-    console.log('\n💡 Make sure your database is running and credentials are correct in .env file');
+    console.log(
+      '\n💡 Make sure your database is running and credentials are correct in .env file',
+    );
   } finally {
     if (connection) {
       await connection.end();

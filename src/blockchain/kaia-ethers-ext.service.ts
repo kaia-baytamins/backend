@@ -195,7 +195,6 @@ export class KaiaEthersExtService {
           this.configService.get<string>('kaia.privateKey'),
         );
       }
-      console.log('senderTxHashRLP:', senderTxHashRLP);
 
       // Step 3: Fee payer signs and sends following the official example
       const result = await this.sendTransactionAsFeePayer(senderTxHashRLP);

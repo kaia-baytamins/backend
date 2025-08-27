@@ -1,17 +1,17 @@
 import * as dotenv from 'dotenv';
 import { DataSource } from 'typeorm';
-import { 
-  User, 
-  Pet, 
-  Spaceship, 
-  SpaceshipItem, 
-  Planet, 
-  ExplorationRecord, 
-  Quest, 
-  UserQuest, 
-  MarketplaceItem, 
+import {
+  User,
+  Pet,
+  Spaceship,
+  SpaceshipItem,
+  Planet,
+  ExplorationRecord,
+  Quest,
+  UserQuest,
+  MarketplaceItem,
   Leaderboard,
-  UserInventory 
+  UserInventory,
 } from '../entities';
 import { Friendship } from '../entities/friendship.entity';
 import { Invitation } from '../entities/invitation.entity';
@@ -27,20 +27,20 @@ const AppDataSource = new DataSource({
   password: process.env.DB_PASSWORD || '',
   database: process.env.DB_DATABASE || 'uchumon',
   entities: [
-    User, 
-    Pet, 
-    Spaceship, 
-    SpaceshipItem, 
-    Planet, 
-    ExplorationRecord, 
-    Quest, 
-    UserQuest, 
-    MarketplaceItem, 
+    User,
+    Pet,
+    Spaceship,
+    SpaceshipItem,
+    Planet,
+    ExplorationRecord,
+    Quest,
+    UserQuest,
+    MarketplaceItem,
     Leaderboard,
     UserInventory,
     Friendship,
     Invitation,
-    UserStats
+    UserStats,
   ],
   synchronize: false,
   logging: false,
@@ -86,21 +86,61 @@ const ITEM_INFO = {
 
   // 특수장비 (32-47)
   32: { name: 'Basic Shield', category: 'Special Equipment', rarity: 'common' },
-  33: { name: 'Navigation System', category: 'Special Equipment', rarity: 'common' },
+  33: {
+    name: 'Navigation System',
+    category: 'Special Equipment',
+    rarity: 'common',
+  },
   34: { name: 'Repair Kit', category: 'Special Equipment', rarity: 'common' },
-  35: { name: 'Scanner Device', category: 'Special Equipment', rarity: 'common' },
-  36: { name: 'Communication Array', category: 'Special Equipment', rarity: 'common' },
+  35: {
+    name: 'Scanner Device',
+    category: 'Special Equipment',
+    rarity: 'common',
+  },
+  36: {
+    name: 'Communication Array',
+    category: 'Special Equipment',
+    rarity: 'common',
+  },
   37: { name: 'Life Support', category: 'Special Equipment', rarity: 'common' },
-  38: { name: 'Advanced Shield', category: 'Special Equipment', rarity: 'rare' },
-  39: { name: 'Cloaking Device', category: 'Special Equipment', rarity: 'rare' },
+  38: {
+    name: 'Advanced Shield',
+    category: 'Special Equipment',
+    rarity: 'rare',
+  },
+  39: {
+    name: 'Cloaking Device',
+    category: 'Special Equipment',
+    rarity: 'rare',
+  },
   40: { name: 'Weapon System', category: 'Special Equipment', rarity: 'rare' },
   41: { name: 'Teleporter', category: 'Special Equipment', rarity: 'rare' },
   42: { name: 'Epic Shield', category: 'Special Equipment', rarity: 'epic' },
-  43: { name: 'Gravity Generator', category: 'Special Equipment', rarity: 'epic' },
-  44: { name: 'Legendary Shield', category: 'Special Equipment', rarity: 'legendary' },
-  45: { name: 'Reality Anchor', category: 'Special Equipment', rarity: 'legendary' },
-  46: { name: 'Dimensional Gate', category: 'Special Equipment', rarity: 'legendary' },
-  47: { name: 'Universe Key', category: 'Special Equipment', rarity: 'legendary' },
+  43: {
+    name: 'Gravity Generator',
+    category: 'Special Equipment',
+    rarity: 'epic',
+  },
+  44: {
+    name: 'Legendary Shield',
+    category: 'Special Equipment',
+    rarity: 'legendary',
+  },
+  45: {
+    name: 'Reality Anchor',
+    category: 'Special Equipment',
+    rarity: 'legendary',
+  },
+  46: {
+    name: 'Dimensional Gate',
+    category: 'Special Equipment',
+    rarity: 'legendary',
+  },
+  47: {
+    name: 'Universe Key',
+    category: 'Special Equipment',
+    rarity: 'legendary',
+  },
 
   // 연료탱크 (48-63)
   48: { name: 'Small Fuel Tank', category: 'Fuel Tank', rarity: 'common' },
@@ -123,21 +163,31 @@ const ITEM_INFO = {
 
 function getRarityEmoji(rarity: string): string {
   switch (rarity) {
-    case 'common': return '⚪';
-    case 'rare': return '🔵';
-    case 'epic': return '🟣';
-    case 'legendary': return '🟡';
-    default: return '⚫';
+    case 'common':
+      return '⚪';
+    case 'rare':
+      return '🔵';
+    case 'epic':
+      return '🟣';
+    case 'legendary':
+      return '🟡';
+    default:
+      return '⚫';
   }
 }
 
 function getRarityColor(rarity: string): string {
   switch (rarity) {
-    case 'common': return '\x1b[37m'; // White
-    case 'rare': return '\x1b[34m'; // Blue
-    case 'epic': return '\x1b[35m'; // Magenta
-    case 'legendary': return '\x1b[33m'; // Yellow
-    default: return '\x1b[0m'; // Reset
+    case 'common':
+      return '\x1b[37m'; // White
+    case 'rare':
+      return '\x1b[34m'; // Blue
+    case 'epic':
+      return '\x1b[35m'; // Magenta
+    case 'legendary':
+      return '\x1b[33m'; // Yellow
+    default:
+      return '\x1b[0m'; // Reset
   }
 }
 
@@ -155,10 +205,7 @@ async function checkUserInventory(identifier?: string) {
     if (identifier) {
       // 특정 사용자 조회 (username 또는 walletAddress)
       const user = await userRepository.findOne({
-        where: [
-          { username: identifier },
-          { walletAddress: identifier }
-        ]
+        where: [{ username: identifier }, { walletAddress: identifier }],
       });
 
       if (!user) {
@@ -177,7 +224,7 @@ async function checkUserInventory(identifier?: string) {
     for (const user of users) {
       const inventory = await inventoryRepository.find({
         where: { walletAddress: user.walletAddress },
-        order: { itemId: 'ASC' }
+        order: { itemId: 'ASC' },
       });
 
       console.log(`\n👤 User: ${user.username} (Level ${user.level})`);
@@ -191,38 +238,44 @@ async function checkUserInventory(identifier?: string) {
       }
 
       // 카테고리별로 그룹핑
-      const itemsByCategory = inventory.reduce((acc, item) => {
-        const itemInfo = ITEM_INFO[item.itemId as keyof typeof ITEM_INFO];
-        if (itemInfo) {
-          if (!acc[itemInfo.category]) {
-            acc[itemInfo.category] = [];
+      const itemsByCategory = inventory.reduce(
+        (acc, item) => {
+          const itemInfo = ITEM_INFO[item.itemId as keyof typeof ITEM_INFO];
+          if (itemInfo) {
+            if (!acc[itemInfo.category]) {
+              acc[itemInfo.category] = [];
+            }
+            acc[itemInfo.category].push({ ...item, info: itemInfo });
           }
-          acc[itemInfo.category].push({ ...item, info: itemInfo });
-        }
-        return acc;
-      }, {} as Record<string, any[]>);
+          return acc;
+        },
+        {} as Record<string, any[]>,
+      );
 
       let totalItems = 0;
-      Object.keys(itemsByCategory).forEach(category => {
+      Object.keys(itemsByCategory).forEach((category) => {
         console.log(`\n  📂 ${category}:`);
-        
-        itemsByCategory[category].forEach(item => {
+
+        itemsByCategory[category].forEach((item) => {
           const emoji = getRarityEmoji(item.info.rarity);
           const color = getRarityColor(item.info.rarity);
           const reset = '\x1b[0m';
-          
-          console.log(`    ${emoji} ${color}[${item.info.rarity.toUpperCase()}]${reset} ${item.info.name} x${item.amount}`);
+
+          console.log(
+            `    ${emoji} ${color}[${item.info.rarity.toUpperCase()}]${reset} ${item.info.name} x${item.amount}`,
+          );
           totalItems += item.amount;
         });
       });
 
       console.log(`\n  📊 Total Items: ${totalItems}`);
-      console.log(`  🕒 Last Synced: ${inventory[0]?.lastSyncedAt?.toLocaleString() || 'N/A'}`);
+      console.log(
+        `  🕒 Last Synced: ${inventory[0]?.lastSyncedAt?.toLocaleString() || 'N/A'}`,
+      );
     }
 
     console.log('\n' + '='.repeat(80));
     console.log('✨ Inventory check completed!');
-
   } catch (error) {
     console.error('❌ Error checking inventory:', error.message);
   } finally {
@@ -235,17 +288,23 @@ async function checkUserInventory(identifier?: string) {
 async function main() {
   const args = process.argv.slice(2);
   const command = args[0];
-  
+
   if (command === '--help' || command === '-h') {
     console.log('📦 User Inventory Checker');
     console.log('\nUsage:');
     console.log('  pnpm check-inventory                    # Check all users');
-    console.log('  pnpm check-inventory [username]         # Check specific user by username');
-    console.log('  pnpm check-inventory [wallet_address]   # Check specific user by wallet address');
+    console.log(
+      '  pnpm check-inventory [username]         # Check specific user by username',
+    );
+    console.log(
+      '  pnpm check-inventory [wallet_address]   # Check specific user by wallet address',
+    );
     console.log('\nExamples:');
     console.log('  pnpm check-inventory');
     console.log('  pnpm check-inventory "김민수"');
-    console.log('  pnpm check-inventory "0x1234567890123456789012345678901234567890"');
+    console.log(
+      '  pnpm check-inventory "0x1234567890123456789012345678901234567890"',
+    );
     return;
   }
 

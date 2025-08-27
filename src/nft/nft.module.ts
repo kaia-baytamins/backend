@@ -6,12 +6,7 @@ import { User } from '../entities/user.entity';
 import { Planet } from '../entities/planet.entity';
 
 @Module({
-  imports: [
-    TypeOrmModule.forFeature([
-      User,
-      Planet,
-    ]),
-  ],
+  imports: [TypeOrmModule.forFeature([User, Planet])],
   controllers: [NFTController],
   providers: [NFTService],
   exports: [NFTService],

@@ -16,7 +16,9 @@ export class InventoryService {
   /**
    * Get user inventory by LINE ID (해당 유저의 지갑 인벤토리)
    */
-  async getUserInventoryByLineId(lineUserId: string): Promise<Record<number, number>> {
+  async getUserInventoryByLineId(
+    lineUserId: string,
+  ): Promise<Record<number, number>> {
     // LINE ID로 유저 찾기
     const user = await this.userRepository.findOne({
       where: { lineUserId },
@@ -33,7 +35,9 @@ export class InventoryService {
   /**
    * Get inventory by specific wallet address (장착되지 않은 아이템만)
    */
-  async getInventoryByWalletAddress(walletAddress: string): Promise<Record<number, number>> {
+  async getInventoryByWalletAddress(
+    walletAddress: string,
+  ): Promise<Record<number, number>> {
     const inventoryItems = await this.inventoryRepository.find({
       where: { walletAddress, amount: MoreThan(0), isEquipped: false },
     });
@@ -46,7 +50,6 @@ export class InventoryService {
 
     return inventory;
   }
-
 
   /**
    * Update wallet inventory (블록체인 동기화 시 사용)
@@ -157,14 +160,14 @@ export class InventoryService {
     const equippedSameType = await this.inventoryRepository.find({
       where: { walletAddress, isEquipped: true },
     });
-    
+
     for (const item of equippedSameType) {
       if (this.getItemTypeFromId(item.itemId) === itemType) {
         // 기존 장착 아이템을 인벤토리로 복구
         const existingInInventory = await this.inventoryRepository.findOne({
           where: { walletAddress, itemId: item.itemId, isEquipped: false },
         });
-        
+
         if (existingInInventory) {
           existingInInventory.amount += 1;
           await this.inventoryRepository.save(existingInInventory);
@@ -174,7 +177,7 @@ export class InventoryService {
           item.amount = 1;
           await this.inventoryRepository.save(item);
         }
-        
+
         // 새로 만든 경우가 아니면 여기서 삭제하지 않음
         if (existingInInventory) {
           await this.inventoryRepository.remove(item);
@@ -233,7 +236,7 @@ export class InventoryService {
           amount: 1,
           isEquipped: false,
           lastSyncedAt: new Date(),
-        })
+        }),
       );
     }
 
@@ -272,12 +275,16 @@ export class InventoryService {
         name: this.getItemName(item.itemId, itemType),
         type: itemType,
         rarity: this.getItemRarity(item.itemId),
-        powerBoost: this.getPowerBoost(item.itemId, this.getItemRarity(item.itemId)),
+        powerBoost: this.getPowerBoost(
+          item.itemId,
+          this.getItemRarity(item.itemId),
+        ),
       };
 
       if (itemType === 'engine') equipment.engine = formattedItem;
       if (itemType === 'material') equipment.material = formattedItem;
-      if (itemType === 'special_equipment') equipment.specialEquipment = formattedItem;
+      if (itemType === 'special_equipment')
+        equipment.specialEquipment = formattedItem;
       if (itemType === 'fuel_tank') equipment.fuelTank = formattedItem;
     }
 
@@ -295,10 +302,10 @@ export class InventoryService {
 
   private getItemName(itemId: number, itemType: string): string {
     const typeNames = {
-      'engine': 'Engine',
-      'material': 'Material',
-      'special_equipment': 'Special Equipment',
-      'fuel_tank': 'Fuel Tank',
+      engine: 'Engine',
+      material: 'Material',
+      special_equipment: 'Special Equipment',
+      fuel_tank: 'Fuel Tank',
     };
     return `${typeNames[itemType]} #${itemId}`;
   }
@@ -313,20 +320,20 @@ export class InventoryService {
 
   private getPowerBoost(itemId: number, rarity: string): number {
     const rarityMultiplier = {
-      'common': 10,
-      'rare': 25,
-      'epic': 50,
-      'legendary': 100,
+      common: 10,
+      rare: 25,
+      epic: 50,
+      legendary: 100,
     };
     return rarityMultiplier[rarity];
   }
 
   private getStatBoost(rarity: string): number {
     const rarityBoost = {
-      'common': 5,
-      'rare': 15,
-      'epic': 30,
-      'legendary': 60,
+      common: 5,
+      rare: 15,
+      epic: 30,
+      legendary: 60,
     };
     return rarityBoost[rarity];
   }
@@ -334,7 +341,11 @@ export class InventoryService {
   /**
    * 아이템 판매 (인벤토리에서 제거)
    */
-  async sellItem(walletAddress: string, itemId: number, price: number): Promise<any> {
+  async sellItem(
+    walletAddress: string,
+    itemId: number,
+    price: number,
+  ): Promise<any> {
     // 1. 인벤토리에서 해당 아이템 확인 (미장착 상태여야 함)
     const inventoryItem = await this.inventoryRepository.findOne({
       where: { walletAddress, itemId, isEquipped: false },
@@ -369,5 +380,4 @@ export class InventoryService {
       },
     };
   }
-
 }
