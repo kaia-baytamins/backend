@@ -64,11 +64,18 @@ export class GasDelegationService {
       await this.validateDelegationRequest(request);
 
       // Handle KAIA SDK senderTxHashRLP format
-      if (request.signedMessage && typeof request.signedMessage === 'string' && 
-          request.signedMessage.startsWith('0x31')) {
+      if (
+        request.signedMessage &&
+        typeof request.signedMessage === 'string' &&
+        request.signedMessage.startsWith('0x31')
+      ) {
         // This is a KAIA SDK senderTxHashRLP - use it directly for fee delegation
-        this.logger.log('✅ Received KAIA SDK senderTxHashRLP, proceeding with fee delegation');
-        this.logger.debug(`senderTxHashRLP: ${request.signedMessage.substring(0, 50)}...`);
+        this.logger.log(
+          '✅ Received KAIA SDK senderTxHashRLP, proceeding with fee delegation',
+        );
+        this.logger.debug(
+          `senderTxHashRLP: ${request.signedMessage.substring(0, 50)}...`,
+        );
       } else if (request.userSignature && request.signedMessage) {
         // Legacy signature validation (fallback)
         const isSignatureValid = await this.validateUserSignature(
@@ -97,11 +104,19 @@ export class GasDelegationService {
 
       // Use the new KAIA ethers-ext service for fee delegation
       let txResponse;
-      
+
       if (request.signedMessage && request.signedMessage.startsWith('0x31')) {
-        // Use KAIA SDK senderTxHashRLP directly
-        txResponse = await this.kaiaEthersExtService.executeFeeDelegationWithRLP(
-          request.signedMessage
+        // Use KAIA SDK senderTxHashRLP directly - pass it as userSignedTxHashRLP
+        txResponse = await this.kaiaEthersExtService.executeFeeDelegation(
+          {
+            from: request.from,
+            to: request.to || '',
+            value: request.value || '0',
+            data: request.data,
+            gas: request.gas,
+            gasPrice: request.gasPrice,
+          },
+          request.signedMessage, // Pass the senderTxHashRLP as userSignedTxHashRLP
         );
       } else {
         // Fallback to legacy method
@@ -363,7 +378,9 @@ export class GasDelegationService {
 
       // Simple transaction hash generation (KAIA SDK handles RLP encoding)
       const chainId = parseInt(this.blockchainService.getChainId() || '1001');
-      const transactionHash = ethers.id(`${kaiaTransaction.type}-${(kaiaTransaction as any).to || 'deploy'}-${kaiaTransaction.nonce}`);
+      const transactionHash = ethers.id(
+        `${kaiaTransaction.type}-${(kaiaTransaction as any).to || 'deploy'}-${kaiaTransaction.nonce}`,
+      );
 
       return {
         transaction: kaiaTransaction,

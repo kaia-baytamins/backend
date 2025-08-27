@@ -522,17 +522,17 @@ export class KaiaRlpService {
       // From multiple KAIA test runs, we see V values change dynamically
       // Instead of hardcoding, let's try to calculate the correct V value
       const recoveryParam = originalV % 2; // 0 or 1
-      
+
       // Based on KAIA examples, try different V calculation methods
       const candidateVValues = [
-        27 + recoveryParam,           // Standard: 27, 28
-        31 + recoveryParam,           // KAIA range 1: 31, 32  
-        35 + recoveryParam,           // KAIA range 2: 35, 36
-        originalV,                    // Use original V as-is
-        (originalV - 27) + 27,        // Normalize and rebuild
-        (originalV % 256),            // Last byte only
+        27 + recoveryParam, // Standard: 27, 28
+        31 + recoveryParam, // KAIA range 1: 31, 32
+        35 + recoveryParam, // KAIA range 2: 35, 36
+        originalV, // Use original V as-is
+        originalV - 27 + 27, // Normalize and rebuild
+        originalV % 256, // Last byte only
       ];
-      
+
       // Use the third candidate: KAIA range 2 (35+recovery)
       const kaiaV = candidateVValues[6]; // Try KAIA range 2: 35, 36
       const kaiaVHex = `0x${kaiaV.toString(16)}`;
@@ -541,7 +541,7 @@ export class KaiaRlpService {
         originalV,
         originalVHex: `0x${originalV.toString(16)}`,
         recoveryParam,
-        candidateVValues: candidateVValues.map(v => `0x${v.toString(16)}`),
+        candidateVValues: candidateVValues.map((v) => `0x${v.toString(16)}`),
         selectedKaiaV: kaiaV,
         kaiaVHex,
       });

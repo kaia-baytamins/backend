@@ -265,7 +265,9 @@ export class KaiaTransactionService {
   ): Promise<KaiaSignature> {
     const chainId = parseInt(this.configService.get('kaia.chainId') || '1001');
     // Simple hash generation (KAIA SDK handles proper encoding)
-    const encodedTx = ethers.id(`${transaction.type}-${(transaction as any).to || 'deploy'}-${transaction.nonce}`);
+    const encodedTx = ethers.id(
+      `${transaction.type}-${(transaction as any).to || 'deploy'}-${transaction.nonce}`,
+    );
     const hash = ethers.keccak256(encodedTx);
 
     // Sign the hash directly with chain ID consideration
@@ -297,7 +299,9 @@ export class KaiaTransactionService {
 
     const chainId = parseInt(this.configService.get('kaia.chainId') || '1001');
     // Simple hash generation for fee payer signature
-    const encodedTx = ethers.id(`feepayer-${txForSigning.type}-${(txForSigning as any).to || 'deploy'}`);
+    const encodedTx = ethers.id(
+      `feepayer-${txForSigning.type}-${(txForSigning as any).to || 'deploy'}`,
+    );
     const hash = ethers.keccak256(encodedTx);
 
     // Sign the hash directly with chain ID consideration
