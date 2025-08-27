@@ -290,10 +290,13 @@ export class DefiService {
       const usdtContract = this.contractService.getUsdtContract();
       const amountWei = this.blockchainService.parseKaia(amount);
 
+      // Ensure proper checksum address format
+      const checksumUserAddress = ethers.getAddress(userAddress);
+
       // Check current allowance
       const stakingAddress = await stakingContract.getAddress();
       const currentAllowance = await usdtContract.allowance(
-        userAddress,
+        checksumUserAddress,
         stakingAddress,
       );
 
@@ -306,10 +309,23 @@ export class DefiService {
         );
 
         const gasPrice = await this.blockchainService.getGasPrice();
-        const gasEstimate = await usdtContract.approve.estimateGas(
-          stakingAddress,
-          amountWei,
-        );
+
+        // Use direct kaia_estimateGas RPC call for approval
+        const provider = this.blockchainService.getProvider();
+        const usdtAddress = await usdtContract.getAddress();
+
+        const gasEstimateHex = await provider.send('kaia_estimateGas', [
+          {
+            from: checksumUserAddress,
+            to: usdtAddress,
+            gas: '0x100000', // 1M gas limit for estimation
+            gasPrice: `0x${gasPrice.toString(16)}`,
+            value: '0x0',
+            data: approvalData,
+          },
+        ]);
+
+        const gasEstimate = BigInt(gasEstimateHex);
 
         this.logger.log(
           `Prepared USDT approval transaction for ${userAddress}: ${amount} tokens for staking`,
@@ -339,9 +355,24 @@ export class DefiService {
         amountWei,
       ]);
 
-      // Get gas price and estimate gas
+      // Get gas price and estimate gas using direct RPC call
       const gasPrice = await this.blockchainService.getGasPrice();
-      const gasEstimate = await stakingContract.stake.estimateGas(amountWei);
+
+      // Use direct kaia_estimateGas RPC call to avoid ethers.js from mismatch
+      const provider = this.blockchainService.getProvider();
+
+      const gasEstimateHex = await provider.send('kaia_estimateGas', [
+        {
+          from: checksumUserAddress,
+          to: stakingAddress,
+          gas: '0x100000', // 1M gas limit for estimation
+          gasPrice: `0x${gasPrice.toString(16)}`,
+          value: '0x0',
+          data: data,
+        },
+      ]);
+
+      const gasEstimate = BigInt(gasEstimateHex);
 
       this.logger.log(
         `Prepared stake transaction for ${userAddress}: ${amount} tokens`,
@@ -403,10 +434,13 @@ export class DefiService {
       const usdtContract = this.contractService.getUsdtContract();
       const amountWei = this.blockchainService.parseKaia(amount);
 
+      // Ensure proper checksum address format
+      const checksumUserAddress = ethers.getAddress(userAddress);
+
       // Check current allowance
       const lendingAddress = await lendingContract.getAddress();
       const currentAllowance = await usdtContract.allowance(
-        userAddress,
+        checksumUserAddress,
         lendingAddress,
       );
 
@@ -419,10 +453,23 @@ export class DefiService {
         );
 
         const gasPrice = await this.blockchainService.getGasPrice();
-        const gasEstimate = await usdtContract.approve.estimateGas(
-          lendingAddress,
-          amountWei,
-        );
+
+        // Use direct kaia_estimateGas RPC call for approval
+        const provider = this.blockchainService.getProvider();
+        const usdtAddress = await usdtContract.getAddress();
+
+        const gasEstimateHex = await provider.send('kaia_estimateGas', [
+          {
+            from: checksumUserAddress,
+            to: usdtAddress,
+            gas: '0x100000', // 1M gas limit for estimation
+            gasPrice: `0x${gasPrice.toString(16)}`,
+            value: '0x0',
+            data: approvalData,
+          },
+        ]);
+
+        const gasEstimate = BigInt(gasEstimateHex);
 
         this.logger.log(
           `Prepared USDT approval transaction for ${userAddress}: ${amount} tokens for lending supply`,
@@ -452,9 +499,24 @@ export class DefiService {
         amountWei,
       ]);
 
-      // Get gas price and estimate gas
+      // Get gas price and estimate gas using direct RPC call
       const gasPrice = await this.blockchainService.getGasPrice();
-      const gasEstimate = await lendingContract.supply.estimateGas(amountWei);
+
+      // Use direct kaia_estimateGas RPC call
+      const provider = this.blockchainService.getProvider();
+
+      const gasEstimateHex = await provider.send('kaia_estimateGas', [
+        {
+          from: checksumUserAddress,
+          to: lendingAddress,
+          gas: '0x100000', // 1M gas limit for estimation
+          gasPrice: `0x${gasPrice.toString(16)}`,
+          value: '0x0',
+          data: data,
+        },
+      ]);
+
+      const gasEstimate = BigInt(gasEstimateHex);
 
       this.logger.log(
         `Prepared lending supply transaction for ${userAddress}: ${amount} tokens`,
@@ -498,6 +560,9 @@ export class DefiService {
       const amountAWei = this.blockchainService.parseKaia(amountA);
       const amountBWei = this.blockchainService.parseKaia(amountB);
 
+      // Ensure proper checksum address format
+      const checksumUserAddress = ethers.getAddress(userAddress);
+
       // Create transaction data for AMM liquidity
       const ammContractInterface = ammContract.interface;
       const data = ammContractInterface.encodeFunctionData('addLiquidity', [
@@ -505,12 +570,25 @@ export class DefiService {
         amountBWei,
       ]);
 
-      // Get gas price and estimate gas
+      // Get gas price and estimate gas using direct RPC call
       const gasPrice = await this.blockchainService.getGasPrice();
-      const gasEstimate = await ammContract.addLiquidity.estimateGas(
-        amountAWei,
-        amountBWei,
-      );
+
+      // Use direct kaia_estimateGas RPC call
+      const provider = this.blockchainService.getProvider();
+      const ammAddress = await ammContract.getAddress();
+
+      const gasEstimateHex = await provider.send('kaia_estimateGas', [
+        {
+          from: checksumUserAddress,
+          to: ammAddress,
+          gas: '0x100000', // 1M gas limit for estimation
+          gasPrice: `0x${gasPrice.toString(16)}`,
+          value: '0x0',
+          data: data,
+        },
+      ]);
+
+      const gasEstimate = BigInt(gasEstimateHex);
 
       this.logger.log(
         `Prepared AMM liquidity transaction for ${userAddress}: ${amountA}/${amountB}`,
@@ -612,7 +690,11 @@ export class DefiService {
     try {
       const faucetContract = this.contractService.getFaucetContract();
 
-      const canRequest = await faucetContract.canRequestTokens(userAddress);
+      // Ensure proper checksum address format
+      const checksumUserAddress = ethers.getAddress(userAddress);
+
+      const canRequest =
+        await faucetContract.canRequestTokens(checksumUserAddress);
       if (!canRequest) {
         throw new Error('Faucet cooldown period not yet passed');
       }
@@ -621,13 +703,28 @@ export class DefiService {
       const faucetContractInterface = faucetContract.interface;
       const data = faucetContractInterface.encodeFunctionData(
         'requestTokensFor',
-        [userAddress],
+        [checksumUserAddress],
       );
 
-      // Get gas price and estimate gas
+      // Get gas price and estimate gas using direct RPC call
       const gasPrice = await this.blockchainService.getGasPrice();
-      const gasEstimate =
-        await faucetContract.requestTokensFor.estimateGas(userAddress);
+
+      // Use direct kaia_estimateGas RPC call
+      const provider = this.blockchainService.getProvider();
+      const faucetAddress = await faucetContract.getAddress();
+
+      const gasEstimateHex = await provider.send('kaia_estimateGas', [
+        {
+          from: checksumUserAddress,
+          to: faucetAddress,
+          gas: '0x100000', // 1M gas limit for estimation
+          gasPrice: `0x${gasPrice.toString(16)}`,
+          value: '0x0',
+          data: data,
+        },
+      ]);
+
+      const gasEstimate = BigInt(gasEstimateHex);
 
       this.logger.log(`Prepared faucet transaction for ${userAddress}`);
 
@@ -859,7 +956,9 @@ export class DefiService {
         });
 
         // Use simple hash instead of complex RLP encoding
-        const hash = ethers.id(`${kaiaTransaction.type}-${kaiaTransaction.to}-${kaiaTransaction.nonce}`);
+        const hash = ethers.id(
+          `${kaiaTransaction.type}-${kaiaTransaction.to}-${kaiaTransaction.nonce}`,
+        );
 
         this.logger.debug(
           'Successfully generated transaction hash for signing:',
