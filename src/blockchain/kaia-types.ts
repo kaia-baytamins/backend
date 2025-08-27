@@ -40,12 +40,12 @@ export interface KaiaTransactionBase {
   gasPrice: string;
   gas: string;
   from: string;
-  signatures?: string[];
+  signatures?: KaiaSignature[];
 }
 
 export interface KaiaFeeDelegatedTransactionBase extends KaiaTransactionBase {
   feePayer?: string;
-  feePayerSignatures?: string[];
+  feePayerSignatures?: KaiaSignature[];
   feeRatio?: number; // 0-99 for ratio-based fee delegation
 }
 

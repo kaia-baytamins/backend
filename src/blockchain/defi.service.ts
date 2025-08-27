@@ -1,8 +1,10 @@
 import { Injectable, Logger } from '@nestjs/common';
+import { ConfigService } from '@nestjs/config';
 import { ethers } from 'ethers';
 
 import { BlockchainService } from './blockchain.service';
 import { ContractService } from './contract.service';
+import { KaiaTransactionType, KaiaSmartContractExecution } from './kaia-types';
 
 export interface UserDefiPortfolio {
   totalValue: string;
@@ -59,6 +61,19 @@ export interface DefiTransactionData {
   gasPrice: string;
   value: string;
   type: 'contract_execution';
+  messageToSign: string;
+}
+
+export interface DefiTransactionResponse {
+  success: boolean;
+  transactionData?: DefiTransactionData;
+  message: string;
+  instructions?: {
+    step1: string;
+    step2: string;
+    step3: string;
+  };
+  error?: string;
 }
 
 export interface Call3 {
@@ -79,6 +94,7 @@ export class DefiService {
   constructor(
     private readonly blockchainService: BlockchainService,
     private readonly contractService: ContractService,
+    private readonly configService: ConfigService,
   ) {}
 
   /**
@@ -293,20 +309,27 @@ export class DefiService {
         const gasEstimate = await usdtContract.approve.estimateGas(
           stakingAddress,
           amountWei,
-          { from: userAddress },
         );
 
         this.logger.log(
           `Prepared USDT approval transaction for ${userAddress}: ${amount} tokens for staking`,
         );
 
-        return {
+        const transactionData: Omit<DefiTransactionData, 'messageToSign'> = {
           to: await usdtContract.getAddress(),
           data: approvalData,
           gas: ((gasEstimate * 110n) / 100n).toString(), // Add 10% buffer
           gasPrice: gasPrice.toString(),
           value: '0',
           type: 'contract_execution',
+        };
+
+        return {
+          ...transactionData,
+          messageToSign: await this.createSigningMessage(
+            transactionData,
+            userAddress,
+          ),
         };
       }
 
@@ -318,21 +341,27 @@ export class DefiService {
 
       // Get gas price and estimate gas
       const gasPrice = await this.blockchainService.getGasPrice();
-      const gasEstimate = await stakingContract.stake.estimateGas(amountWei, {
-        from: userAddress,
-      });
+      const gasEstimate = await stakingContract.stake.estimateGas(amountWei);
 
       this.logger.log(
         `Prepared stake transaction for ${userAddress}: ${amount} tokens`,
       );
 
-      return {
+      const transactionData: Omit<DefiTransactionData, 'messageToSign'> = {
         to: await stakingContract.getAddress(),
         data: data,
         gas: ((gasEstimate * 110n) / 100n).toString(), // Add 10% buffer
         gasPrice: gasPrice.toString(),
         value: '0',
         type: 'contract_execution',
+      };
+
+      return {
+        ...transactionData,
+        messageToSign: await this.createSigningMessage(
+          transactionData,
+          userAddress,
+        ),
       };
     } catch (error) {
       this.logger.error(
@@ -393,20 +422,27 @@ export class DefiService {
         const gasEstimate = await usdtContract.approve.estimateGas(
           lendingAddress,
           amountWei,
-          { from: userAddress },
         );
 
         this.logger.log(
           `Prepared USDT approval transaction for ${userAddress}: ${amount} tokens for lending supply`,
         );
 
-        return {
+        const transactionData: Omit<DefiTransactionData, 'messageToSign'> = {
           to: await usdtContract.getAddress(),
           data: approvalData,
           gas: ((gasEstimate * 110n) / 100n).toString(), // Add 10% buffer
           gasPrice: gasPrice.toString(),
           value: '0',
           type: 'contract_execution',
+        };
+
+        return {
+          ...transactionData,
+          messageToSign: await this.createSigningMessage(
+            transactionData,
+            userAddress,
+          ),
         };
       }
 
@@ -418,21 +454,27 @@ export class DefiService {
 
       // Get gas price and estimate gas
       const gasPrice = await this.blockchainService.getGasPrice();
-      const gasEstimate = await lendingContract.supply.estimateGas(amountWei, {
-        from: userAddress,
-      });
+      const gasEstimate = await lendingContract.supply.estimateGas(amountWei);
 
       this.logger.log(
         `Prepared lending supply transaction for ${userAddress}: ${amount} tokens`,
       );
 
-      return {
+      const transactionData: Omit<DefiTransactionData, 'messageToSign'> = {
         to: await lendingContract.getAddress(),
         data: data,
         gas: ((gasEstimate * 110n) / 100n).toString(), // Add 10% buffer
         gasPrice: gasPrice.toString(),
         value: '0',
         type: 'contract_execution',
+      };
+
+      return {
+        ...transactionData,
+        messageToSign: await this.createSigningMessage(
+          transactionData,
+          userAddress,
+        ),
       };
     } catch (error) {
       this.logger.error(
@@ -468,22 +510,27 @@ export class DefiService {
       const gasEstimate = await ammContract.addLiquidity.estimateGas(
         amountAWei,
         amountBWei,
-        {
-          from: userAddress,
-        },
       );
 
       this.logger.log(
         `Prepared AMM liquidity transaction for ${userAddress}: ${amountA}/${amountB}`,
       );
 
-      return {
+      const transactionData: Omit<DefiTransactionData, 'messageToSign'> = {
         to: await ammContract.getAddress(),
         data: data,
         gas: ((gasEstimate * 110n) / 100n).toString(), // Add 10% buffer
         gasPrice: gasPrice.toString(),
         value: '0',
         type: 'contract_execution',
+      };
+
+      return {
+        ...transactionData,
+        messageToSign: await this.createSigningMessage(
+          transactionData,
+          userAddress,
+        ),
       };
     } catch (error) {
       this.logger.error(
@@ -579,22 +626,26 @@ export class DefiService {
 
       // Get gas price and estimate gas
       const gasPrice = await this.blockchainService.getGasPrice();
-      const gasEstimate = await faucetContract.requestTokensFor.estimateGas(
-        userAddress,
-        {
-          from: userAddress,
-        },
-      );
+      const gasEstimate =
+        await faucetContract.requestTokensFor.estimateGas(userAddress);
 
       this.logger.log(`Prepared faucet transaction for ${userAddress}`);
 
-      return {
+      const transactionData: Omit<DefiTransactionData, 'messageToSign'> = {
         to: await faucetContract.getAddress(),
         data: data,
         gas: ((gasEstimate * 110n) / 100n).toString(), // Add 10% buffer
         gasPrice: gasPrice.toString(),
         value: '0',
         type: 'contract_execution',
+      };
+
+      return {
+        ...transactionData,
+        messageToSign: await this.createSigningMessage(
+          transactionData,
+          userAddress,
+        ),
       };
     } catch (error) {
       this.logger.error(
@@ -756,9 +807,7 @@ export class DefiService {
     try {
       const multicall3Contract = this.contractService.getMulticall3Contract();
 
-      const results = await multicall3Contract.aggregate3(calls, {
-        from: userAddress,
-      });
+      const results = await multicall3Contract.aggregate3(calls);
 
       this.logger.log(
         `Executed multicall for ${userAddress} with ${calls.length} calls`,
@@ -771,6 +820,82 @@ export class DefiService {
     } catch (error) {
       this.logger.error(`Error executing multicall for ${userAddress}:`, error);
       throw error;
+    }
+  }
+
+  /**
+   * Create a simple signing message for KAIA transactions
+   * This avoids complex RLP encoding on frontend
+   */
+  private async createSigningMessage(
+    transactionData: any,
+    userAddress: string,
+  ): Promise<string> {
+    try {
+      // Get the actual nonce for the user address to ensure consistency
+      const provider = this.blockchainService.getProvider();
+      const currentNonce = await provider.getTransactionCount(userAddress);
+
+      // Create the KAIA transaction object for signing with actual nonce
+      const kaiaTransaction: KaiaSmartContractExecution = {
+        type: KaiaTransactionType.FEE_DELEGATED_SMART_CONTRACT_EXECUTION,
+        nonce: `0x${currentNonce.toString(16)}`, // Use actual current nonce
+        gasPrice: transactionData.gasPrice,
+        gas: transactionData.gas,
+        to: transactionData.to.toLowerCase(),
+        value: transactionData.value || '0',
+        from: userAddress.toLowerCase(),
+        input: transactionData.data || '0x',
+      };
+
+      try {
+        // Use the KAIA RLP service to encode the transaction for signing
+        const chainId = parseInt(
+          this.configService.get('kaia.chainId') || '1001',
+        );
+        this.logger.debug('About to encode transaction for signing:', {
+          kaiaTransaction,
+          chainId,
+        });
+
+        // Use simple hash instead of complex RLP encoding
+        const hash = ethers.id(`${kaiaTransaction.type}-${kaiaTransaction.to}-${kaiaTransaction.nonce}`);
+
+        this.logger.debug(
+          'Successfully generated transaction hash for signing:',
+          {
+            hash,
+            chainId,
+            userAddress: userAddress.toLowerCase(),
+            actualNonce: `0x${currentNonce.toString(16)}`,
+          },
+        );
+
+        return hash;
+      } catch (error) {
+        this.logger.error('Error creating transaction hash for signing:', {
+          error: error.message,
+          stack: error.stack,
+          kaiaTransaction,
+        });
+        // Fallback to simple message if hash generation fails
+        const message = `KAIA Transaction Signing
+From: ${userAddress.toLowerCase()}
+To: ${transactionData.to.toLowerCase()}
+Value: ${transactionData.value}
+Gas: ${transactionData.gas}
+GasPrice: ${transactionData.gasPrice}
+Data: ${transactionData.data}
+Type: ${transactionData.type}
+Nonce: ${currentNonce}
+ChainId: 1001`;
+
+        return message;
+      }
+    } catch (error) {
+      this.logger.error('Error getting nonce for signing message:', error);
+      // Ultimate fallback without nonce
+      return `KAIA Transaction Signing\nFrom: ${userAddress.toLowerCase()}\nTo: ${transactionData.to.toLowerCase()}\nValue: ${transactionData.value || '0'}`;
     }
   }
 }

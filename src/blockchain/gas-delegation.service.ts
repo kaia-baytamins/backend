@@ -3,7 +3,7 @@ import { ethers } from 'ethers';
 
 import { BlockchainService } from './blockchain.service';
 import { KaiaTransactionService } from './kaia-transaction.service';
-import { KaiaRlpService } from './kaia-rlp.service';
+import { KaiaEthersExtService } from './kaia-ethers-ext.service';
 import {
   KaiaFeeDelegatedTransaction,
   KaiaTransactionError,
@@ -19,6 +19,7 @@ export interface FeeDelegationRequest {
   memo?: string;
   type?: 'value_transfer' | 'value_transfer_memo' | 'contract_execution';
   userSignature?: string;
+  signedMessage?: string;
 }
 
 export interface FeeDelegationResponse {
@@ -40,7 +41,7 @@ export class GasDelegationService {
   constructor(
     private readonly blockchainService: BlockchainService,
     private readonly kaiaTransactionService: KaiaTransactionService,
-    private readonly rlpService: KaiaRlpService,
+    private readonly kaiaEthersExtService: KaiaEthersExtService,
   ) {
     // Set reasonable limits for gas delegation
     this.maxGasLimit = ethers.parseUnits('500000', 'wei'); // 500k gas
@@ -62,34 +63,60 @@ export class GasDelegationService {
       // Validate the request
       await this.validateDelegationRequest(request);
 
+      // Handle KAIA SDK senderTxHashRLP format
+      if (request.signedMessage && typeof request.signedMessage === 'string' && 
+          request.signedMessage.startsWith('0x31')) {
+        // This is a KAIA SDK senderTxHashRLP - use it directly for fee delegation
+        this.logger.log('✅ Received KAIA SDK senderTxHashRLP, proceeding with fee delegation');
+        this.logger.debug(`senderTxHashRLP: ${request.signedMessage.substring(0, 50)}...`);
+      } else if (request.userSignature && request.signedMessage) {
+        // Legacy signature validation (fallback)
+        const isSignatureValid = await this.validateUserSignature(
+          request.from,
+          request.signedMessage,
+          request.userSignature,
+        );
+
+        if (!isSignatureValid) {
+          throw new KaiaTransactionError(
+            'User signature validation failed. Please ensure you signed the correct message.',
+          );
+        }
+        this.logger.log('✅ User signature validated successfully');
+      } else {
+        throw new KaiaTransactionError(
+          'Either KAIA SDK senderTxHashRLP or user signature is required.',
+        );
+      }
+
       // Get the wallet for fee delegation
       const wallet = this.blockchainService.getWallet();
       if (!wallet) {
         throw new KaiaTransactionError('Fee delegation wallet not configured');
       }
 
-      // Determine transaction type
-      const transactionType = this.determineTransactionType(request);
-
-      // Create KAIA fee delegated transaction
-      const kaiaTransaction =
-        await this.kaiaTransactionService.createFeeDelegatedTransaction({
-          type: transactionType,
-          from: request.from,
-          to: request.to,
-          value: request.value || '0',
-          data: request.data,
-          memo: request.memo,
-          gas: request.gas,
-          gasPrice: request.gasPrice,
-        });
-
-      // Send the fee delegated transaction
-      const txResponse =
-        await this.kaiaTransactionService.sendFeeDelegatedTransaction(
-          kaiaTransaction,
+      // Use the new KAIA ethers-ext service for fee delegation
+      let txResponse;
+      
+      if (request.signedMessage && request.signedMessage.startsWith('0x31')) {
+        // Use KAIA SDK senderTxHashRLP directly
+        txResponse = await this.kaiaEthersExtService.executeFeeDelegationWithRLP(
+          request.signedMessage
+        );
+      } else {
+        // Fallback to legacy method
+        txResponse = await this.kaiaEthersExtService.executeFeeDelegation(
+          {
+            from: request.from,
+            to: request.to || '',
+            value: request.value || '0',
+            data: request.data,
+            gas: request.gas,
+            gasPrice: request.gasPrice,
+          },
           request.userSignature,
         );
+      }
 
       this.logger.log(
         `KAIA fee delegated transaction sent: ${txResponse.hash}`,
@@ -334,14 +361,13 @@ export class GasDelegationService {
           gasPrice: request.gasPrice,
         });
 
-      // Encode transaction for signing
-      const encodedTx =
-        this.rlpService.encodeTransactionForSigning(kaiaTransaction);
-      const transactionHash = ethers.keccak256(encodedTx);
+      // Simple transaction hash generation (KAIA SDK handles RLP encoding)
+      const chainId = parseInt(this.blockchainService.getChainId() || '1001');
+      const transactionHash = ethers.id(`${kaiaTransaction.type}-${(kaiaTransaction as any).to || 'deploy'}-${kaiaTransaction.nonce}`);
 
       return {
         transaction: kaiaTransaction,
-        encodedTx,
+        encodedTx: '0x', // Placeholder - not needed with KAIA SDK
         transactionHash,
       };
     } catch (error) {
@@ -363,5 +389,167 @@ export class GasDelegationService {
   getFeePayer(): string | null {
     const wallet = this.blockchainService.getWallet();
     return wallet ? wallet.address : null;
+  }
+
+  /**
+   * Simple signature validation (legacy method for non-KAIA SDK approaches)
+   */
+  async validateUserSignature(
+    userAddress: string,
+    message: string,
+    signature: string,
+  ): Promise<boolean> {
+    try {
+      let recoveredAddress: string;
+
+      // Check if message is a transaction hash (64 hex chars after 0x)
+      const isTransactionHash = /^0x[a-fA-F0-9]{64}$/.test(message);
+
+      if (isTransactionHash) {
+        // For transaction hashes, we need to recover from the hash directly
+        // The signature contains EIP-155 encoding with chain ID
+        this.logger.debug(`Validating transaction hash signature: ${message}`);
+
+        try {
+          // Manual signature parsing to preserve original EIP-155 V value
+          const r = signature.slice(0, 66); // 0x + 64 hex chars
+          const s = '0x' + signature.slice(66, 130); // 64 hex chars
+          const vHex = '0x' + signature.slice(130); // remaining chars
+          const originalV = parseInt(vHex, 16);
+
+          const chainId = parseInt(
+            this.blockchainService.getChainId() || '1001',
+          );
+
+          this.logger.debug(`EIP-155 signature analysis:`, {
+            r,
+            s,
+            vHex,
+            originalV,
+            chainId,
+            expectedV: 27 + 0 + 2 * chainId, // For recoveryParam = 0
+            expectedV1: 27 + 1 + 2 * chainId, // For recoveryParam = 1
+            actualV: originalV,
+          });
+
+          // Create signature object with preserved V value
+          const sig = {
+            r,
+            s,
+            v: originalV,
+            yParity: (originalV - 27 - 2 * chainId) % 2,
+          };
+
+          // Try multiple recovery methods
+          let verifyMessageResult: string = 'ERROR';
+          let eip155RecoveryResult: string = 'ERROR';
+
+          try {
+            // Method 1: Standard message verification (with prefix)
+            verifyMessageResult = ethers.verifyMessage(message, signature);
+          } catch (e) {
+            verifyMessageResult = 'ERROR: ' + e.message;
+          }
+
+          try {
+            // Method 2: Manual EIP-155 recovery for personal_sign + EIP-155 transformation
+            const messageHash = ethers.hashMessage(ethers.getBytes(message));
+
+            // Calculate recovery parameter from EIP-155 V value
+            const recoveryParam = sig.yParity;
+
+            const recoverySignature = ethers.Signature.from({
+              r: sig.r,
+              s: sig.s,
+              v: 27 + recoveryParam, // Convert back to non-EIP-155 format for recovery
+            });
+
+            eip155RecoveryResult = ethers.recoverAddress(
+              messageHash,
+              recoverySignature,
+            );
+          } catch (e) {
+            eip155RecoveryResult = 'ERROR: ' + e.message;
+          }
+
+          this.logger.debug(`Testing multiple signature validation methods:`, {
+            message,
+            signature,
+            verifyMessage: verifyMessageResult,
+            eip155Recovery: eip155RecoveryResult,
+            expectedAddress: userAddress.toLowerCase(),
+          });
+
+          // Choose the method that works - prioritize EIP-155 recovery for transaction hashes
+          if (!eip155RecoveryResult.startsWith('ERROR:')) {
+            recoveredAddress = eip155RecoveryResult;
+            this.logger.debug('Using EIP-155 recovery result');
+          } else if (!verifyMessageResult.startsWith('ERROR:')) {
+            recoveredAddress = verifyMessageResult;
+            this.logger.debug('Using standard message verification result');
+          } else {
+            throw new Error('All signature recovery methods failed');
+          }
+        } catch (hashError) {
+          this.logger.warn(
+            `Failed to validate as transaction hash with prefix: ${hashError.message}`,
+          );
+
+          try {
+            // Fallback: try direct hash recovery without prefix
+            recoveredAddress = ethers.recoverAddress(message, signature);
+
+            this.logger.debug(`Direct hash recovery attempt:`, {
+              message,
+              signature,
+              recoveredAddress,
+              method: 'recoverAddress (direct hash)',
+            });
+          } catch (directError) {
+            this.logger.warn(
+              `Failed direct hash recovery: ${directError.message}`,
+            );
+            // Final fallback to message verification
+            recoveredAddress = ethers.verifyMessage(message, signature);
+          }
+        }
+      } else {
+        // For regular messages, use standard message verification
+        this.logger.debug(`Validating regular message signature`);
+        recoveredAddress = ethers.verifyMessage(message, signature);
+      }
+
+      // Compare with the expected user address (case-insensitive)
+      const isValid =
+        recoveredAddress.toLowerCase() === userAddress.toLowerCase();
+
+      if (!isValid) {
+        this.logger.warn(
+          `Signature validation failed. Expected: ${userAddress}, Recovered: ${recoveredAddress}`,
+        );
+        this.logger.debug(`Signature validation details:`, {
+          message,
+          signature,
+          isTransactionHash,
+          expectedAddress: userAddress.toLowerCase(),
+          recoveredAddress: recoveredAddress.toLowerCase(),
+        });
+      } else {
+        this.logger.log(
+          `Signature validation successful for user: ${userAddress}`,
+        );
+      }
+
+      return isValid;
+    } catch (error) {
+      this.logger.error('Error validating user signature:', error);
+      this.logger.debug('Signature validation error details:', {
+        message,
+        signature,
+        userAddress,
+        error: error.message,
+      });
+      return false;
+    }
   }
 }

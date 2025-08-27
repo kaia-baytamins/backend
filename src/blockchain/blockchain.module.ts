@@ -5,7 +5,7 @@ import { BlockchainService } from './blockchain.service';
 import { GasDelegationService } from './gas-delegation.service';
 import { GasDelegationController } from './gas-delegation.controller';
 import { KaiaTransactionService } from './kaia-transaction.service';
-import { KaiaRlpService } from './kaia-rlp.service';
+import { KaiaEthersExtService } from './kaia-ethers-ext.service';
 import { ContractService } from './contract.service';
 import { DefiService } from './defi.service';
 
@@ -14,16 +14,16 @@ import { DefiService } from './defi.service';
   controllers: [GasDelegationController],
   providers: [
     BlockchainService,
-    KaiaRlpService,
     KaiaTransactionService,
+    KaiaEthersExtService,
     GasDelegationService,
     ContractService,
     DefiService,
   ],
   exports: [
     BlockchainService,
-    KaiaRlpService,
     KaiaTransactionService,
+    KaiaEthersExtService,
     GasDelegationService,
     ContractService,
     DefiService,

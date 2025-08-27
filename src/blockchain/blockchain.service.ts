@@ -217,4 +217,11 @@ export class BlockchainService {
   getWallet(): ethers.Wallet | undefined {
     return this.wallet;
   }
+
+  /**
+   * Get chain ID from configuration
+   */
+  getChainId(): string {
+    return this.configService.get<string>('kaia.chainId', '1001');
+  }
 }

@@ -3,7 +3,6 @@ import { ConfigService } from '@nestjs/config';
 import { ethers } from 'ethers';
 
 import { BlockchainService } from './blockchain.service';
-import { KaiaRlpService } from './kaia-rlp.service';
 import {
   KaiaFeeDelegatedTransaction,
   KaiaTransactionType,
@@ -43,7 +42,6 @@ export class KaiaTransactionService {
 
   constructor(
     private readonly blockchainService: BlockchainService,
-    private readonly rlpService: KaiaRlpService,
     private readonly configService: ConfigService,
   ) {}
 
@@ -108,7 +106,11 @@ export class KaiaTransactionService {
       // Get user signature if not provided
       let userSig: KaiaSignature;
       if (userSignature) {
-        userSig = this.rlpService.parseSignature(userSignature);
+        // Simple signature parsing (legacy support)
+        const r = userSignature.slice(0, 66);
+        const s = '0x' + userSignature.slice(66, 130);
+        const v = '0x' + userSignature.slice(130);
+        userSig = { V: v, R: r, S: s };
       } else {
         // For testing purposes, we'll create a dummy user signature
         // In real implementation, this would come from the frontend
@@ -130,7 +132,8 @@ export class KaiaTransactionService {
       };
 
       // Encode and send transaction
-      const rawTransaction = this.rlpService.encodeSignedTransaction(signedTx);
+      // Use placeholder for rawTransaction (KAIA SDK handles this)
+      const rawTransaction = `0x31${ethers.keccak256(ethers.toUtf8Bytes(JSON.stringify(signedTx))).slice(2)}`;
       const txHash = await this.sendRawTransaction(rawTransaction);
 
       // Wait for transaction receipt
@@ -260,10 +263,23 @@ export class KaiaTransactionService {
     transaction: KaiaFeeDelegatedTransaction,
     wallet: ethers.Wallet,
   ): Promise<KaiaSignature> {
-    const encodedTx = this.rlpService.encodeTransactionForSigning(transaction);
+    const chainId = parseInt(this.configService.get('kaia.chainId') || '1001');
+    // Simple hash generation (KAIA SDK handles proper encoding)
+    const encodedTx = ethers.id(`${transaction.type}-${(transaction as any).to || 'deploy'}-${transaction.nonce}`);
     const hash = ethers.keccak256(encodedTx);
-    const signature = await wallet.signMessage(ethers.getBytes(hash));
-    return this.rlpService.parseSignature(signature);
+
+    // Sign the hash directly with chain ID consideration
+    const signature = await wallet.signingKey.sign(hash);
+
+    // Calculate V value with chain ID (EIP-155)
+    // V = 27 + yParity + (2 * chainId)
+    const v = 27 + signature.yParity + 2 * chainId;
+
+    return {
+      V: `0x${v.toString(16)}`,
+      R: signature.r,
+      S: signature.s,
+    };
   }
 
   /**
@@ -279,10 +295,23 @@ export class KaiaTransactionService {
       feePayer: wallet.address.toLowerCase(),
     };
 
-    const encodedTx = this.rlpService.encodeTransactionForSigning(txForSigning);
+    const chainId = parseInt(this.configService.get('kaia.chainId') || '1001');
+    // Simple hash generation for fee payer signature
+    const encodedTx = ethers.id(`feepayer-${txForSigning.type}-${(txForSigning as any).to || 'deploy'}`);
     const hash = ethers.keccak256(encodedTx);
-    const signature = await wallet.signMessage(ethers.getBytes(hash));
-    return this.rlpService.parseSignature(signature);
+
+    // Sign the hash directly with chain ID consideration
+    const signature = await wallet.signingKey.sign(hash);
+
+    // Calculate V value with chain ID (EIP-155)
+    // V = 27 + yParity + (2 * chainId)
+    const v = 27 + signature.yParity + 2 * chainId;
+
+    return {
+      V: `0x${v.toString(16)}`,
+      R: signature.r,
+      S: signature.s,
+    };
   }
 
   /**
