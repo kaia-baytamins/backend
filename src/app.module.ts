@@ -43,6 +43,7 @@ import { UserInventory } from './entities/user-inventory.entity';
 import { InvitationsModule } from './invitations/invitations.module';
 import { FriendsModule } from './friends/friends.module';
 import { InventoryModule } from './inventory/inventory.module';
+import { NFTModule } from './nft/nft.module';
 
 @Module({
   imports: [
@@ -84,7 +85,7 @@ import { InventoryModule } from './inventory/inventory.module';
           Invitation,
           UserInventory,
         ],
-        synchronize: configService.get('nodeEnv') !== 'production',
+        synchronize: true, // Force sync to recognize new ownedNFTs column
         logging: configService.get('nodeEnv') === 'development',
       }),
     }),
@@ -114,6 +115,7 @@ import { InventoryModule } from './inventory/inventory.module';
     InvitationsModule,
     FriendsModule,
     InventoryModule,
+    NFTModule,
   ],
   controllers: [AppController],
   providers: [
