@@ -1,9 +1,9 @@
 import { DataSource } from 'typeorm';
 import { UserInventory } from '../entities/user-inventory.entity';
-import ormconfig from '../../ormconfig';
+import { AppDataSource } from '../../ormconfig';
 
 async function restoreSoldItem() {
-  const dataSource = new DataSource(ormconfig);
+  const dataSource = AppDataSource;
   
   try {
     await dataSource.initialize();
