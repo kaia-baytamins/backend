@@ -125,7 +125,7 @@ export class DefiQuestController {
         transactionData,
         message: `Transaction prepared for ${questType} quest. Please sign and submit to /blockchain/gas-delegation/delegate`,
         instructions: {
-          step1: 'Sign this transaction with your wallet',
+          step1: 'Sign the transaction message with your wallet',
           step2:
             'Submit the signed transaction to /blockchain/gas-delegation/delegate endpoint',
           step3: 'Gas fees will be covered by our delegation service',

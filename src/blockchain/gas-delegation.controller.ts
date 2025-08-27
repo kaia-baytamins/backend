@@ -15,44 +15,12 @@ import {
   FeeDelegationResponse,
 } from './gas-delegation.service';
 
-// DTOs for API requests/responses
-class DelegateGasFeesDto {
-  from: string;
-  to?: string;
-  data?: string;
-  gas: string;
-  gasPrice?: string;
-  value?: string;
-  memo?: string;
-  type?: 'value_transfer' | 'value_transfer_memo' | 'contract_execution';
-  userSignature?: string;
-}
-
-class EstimateDelegationCostDto {
-  from: string;
-  to?: string;
-  data?: string;
-  gas: string;
-  gasPrice?: string;
-  value?: string;
-  memo?: string;
-  type?: 'value_transfer' | 'value_transfer_memo' | 'contract_execution';
-}
-
-class CreateTransactionForSigningDto {
-  from: string;
-  to?: string;
-  data?: string;
-  gas: string;
-  gasPrice?: string;
-  value?: string;
-  memo?: string;
-  type?: 'value_transfer' | 'value_transfer_memo' | 'contract_execution';
-}
-
-class CheckEligibilityDto {
-  address: string;
-}
+import {
+  DelegateGasFeesDto,
+  EstimateDelegationCostDto,
+  CreateTransactionForSigningDto,
+  CheckEligibilityDto,
+} from './dto/gas-delegation.dto';
 
 @ApiTags('Gas Delegation')
 @Controller('blockchain/gas-delegation')
@@ -93,9 +61,16 @@ export class GasDelegationController {
     @Body() dto: DelegateGasFeesDto,
   ): Promise<FeeDelegationResponse> {
     try {
-      this.logger.log(
-        `Gas delegation request: from=${dto.from}, to=${dto.to}, type=${dto.type}`,
-      );
+      this.logger.log(`Gas delegation request received:`, {
+        from: dto.from,
+        to: dto.to,
+        type: dto.type,
+        gas: dto.gas,
+        gasPrice: dto.gasPrice,
+        value: dto.value,
+        hasData: !!dto.data,
+        hasSignature: !!dto.userSignature,
+      });
 
       // Validate required fields
       if (!dto.from || !dto.gas) {
@@ -121,6 +96,7 @@ export class GasDelegationController {
         memo: dto.memo,
         type: dto.type,
         userSignature: dto.userSignature,
+        signedMessage: dto.signedMessage,
       });
     } catch (error) {
       this.logger.error('Gas delegation failed:', error);

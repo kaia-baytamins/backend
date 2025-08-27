@@ -66,6 +66,9 @@ export class Planet {
   @Column({ nullable: true })
   imageUrl: string;
 
+  @Column({ nullable: true })
+  nftContractAddress: string;
+
   @Column({ default: true })
   isActive: boolean;
 

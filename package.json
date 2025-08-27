@@ -27,9 +27,13 @@
     "seed-quests": "ts-node src/scripts/seed-quests.ts",
     "seed-users": "ts-node src/scripts/run-seed.ts",
     "check-inventory": "ts-node src/scripts/check-user-inventory.ts",
+
     "restore-inventory": "ts-node src/scripts/restore-test-inventory.ts"
+    "seed-nft": "ts-node src/scripts/seed-nft-data.ts"
+
   },
   "dependencies": {
+    "@kaiachain/ethers-ext": "^2.0.8",
     "@nestjs/common": "^10.0.0",
     "@nestjs/config": "^4.0.2",
     "@nestjs/core": "^10.0.0",

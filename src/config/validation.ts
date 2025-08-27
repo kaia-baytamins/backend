@@ -15,7 +15,7 @@ export const validationSchema = Joi.object({
 
   // KAIA blockchain validation
   KAIA_RPC_URL: Joi.string().uri().required(),
-  KAIA_CHAIN_ID: Joi.number().default(8217),
+  KAIA_CHAIN_ID: Joi.number().default(1001),
   KAIA_PRIVATE_KEY: Joi.string().optional().allow(''),
 
   // Contract addresses validation (removed for development)

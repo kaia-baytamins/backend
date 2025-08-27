@@ -11,8 +11,8 @@ export default () => ({
   },
 
   kaia: {
-    rpcUrl: process.env.KAIA_RPC_URL || 'https://public-en.node.kaia.io',
-    chainId: parseInt(process.env.KAIA_CHAIN_ID, 10) || 8217,
+    rpcUrl: process.env.KAIA_RPC_URL || 'https://public-en-kairos.node.kaia.io',
+    chainId: parseInt(process.env.KAIA_CHAIN_ID, 10) || 1001,
     privateKey: process.env.KAIA_PRIVATE_KEY || '',
   },
 
