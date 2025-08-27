@@ -357,4 +357,46 @@ export class LeaderboardService {
         : null,
     };
   }
+
+  /**
+   * Get top 5 rankings for main leaderboard categories
+   */
+  async getTop5Rankings(): Promise<any> {
+    // Get top 5 total explorations
+    const totalExplorations = await this.leaderboardRepository.find({
+      where: {
+        type: LeaderboardType.TOTAL_EXPLORATIONS,
+        period: LeaderboardPeriod.ALL_TIME,
+        isActive: true,
+      },
+      relations: ['user'],
+      order: { rank: 'ASC' },
+      take: 5,
+    });
+
+    // Get top 5 successful explorations (NFT count)
+    const successfulExplorations = await this.leaderboardRepository.find({
+      where: {
+        type: LeaderboardType.SUCCESSFUL_EXPLORATIONS,
+        period: LeaderboardPeriod.ALL_TIME,
+        isActive: true,
+      },
+      relations: ['user'],
+      order: { rank: 'ASC' },
+      take: 5,
+    });
+
+    return {
+      totalExplorations: totalExplorations.map((entry) => ({
+        rank: entry.rank,
+        username: entry.user.username || entry.user.walletAddress || 'Unknown',
+        score: Number(entry.score),
+      })),
+      successfulExplorations: successfulExplorations.map((entry) => ({
+        rank: entry.rank,
+        username: entry.user.username || entry.user.walletAddress || 'Unknown',
+        score: Number(entry.score),
+      })),
+    };
+  }
 }

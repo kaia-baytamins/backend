@@ -311,4 +311,42 @@ export class LeaderboardController {
   async getTopPerformers() {
     return await this.leaderboardService.getTopPerformersSummary();
   }
+
+  @Public()
+  @Get('rankings')
+  @ApiOperation({
+    summary: 'Get top 5 rankings for specific categories',
+    description: 'Get top 5 users for total explorations and successful explorations (NFT count)',
+  })
+  @ApiResponse({
+    status: 200,
+    description: 'Rankings retrieved successfully',
+    schema: {
+      properties: {
+        totalExplorations: {
+          type: 'array',
+          items: {
+            properties: {
+              rank: { type: 'number', example: 1 },
+              username: { type: 'string', example: 'SpaceExplorer' },
+              score: { type: 'number', example: 150 },
+            },
+          },
+        },
+        successfulExplorations: {
+          type: 'array',
+          items: {
+            properties: {
+              rank: { type: 'number', example: 1 },
+              username: { type: 'string', example: 'NFTCollector' },
+              score: { type: 'number', example: 42 },
+            },
+          },
+        },
+      },
+    },
+  })
+  async getRankings() {
+    return await this.leaderboardService.getTop5Rankings();
+  }
 }

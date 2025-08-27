@@ -65,6 +65,9 @@ export class User {
   @Column({ nullable: true })
   lastLoginAt: Date;
 
+  @Column({ type: 'json', nullable: true })
+  ownedNFTs: Record<string, number[]>; // planetId -> tokenIds
+
   @OneToOne(() => Pet, (pet) => pet.owner, { cascade: true })
   pet: Pet;
 
