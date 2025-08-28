@@ -606,19 +606,6 @@ this.logger.error('Fee delegation failed', {
 });
 ```
 
-### Health Checks
-
-```bash
-# Check server status
-curl http://localhost:3000/health
-
-# Check database connection
-curl http://localhost:3000/health/database
-
-# Check blockchain connection
-curl http://localhost:3000/health/blockchain
-```
-
 ### Environment Configuration
 
 ```bash
